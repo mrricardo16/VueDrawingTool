@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>配置测试</title>
+</head>
+<body>
+    <h1>外部config.js测试</h1>
+    <div id="test-results"></div>
+    
+    <!-- 引入外部配置 -->
+    <script src="/config.js"></script>
+    <script>
+        // 测试配置是否正确加载
+        const results = document.getElementById('test-results');
+        
+        function log(message, status = 'info') {
+            const color = status === 'success' ? 'green' : status === 'error' ? 'red' : 'blue';
+            results.innerHTML += `<p style="color: ${color}">${message}</p>`;
+        }
+        
+        log('🔍 开始测试配置加载...', 'info');
+        
+        // 测试1: 检查WebtoolConfig是否存在
+        if (typeof window.WebtoolConfig !== 'undefined') {
+            log('✅ WebtoolConfig对象已加载', 'success');
+        } else {
+            log('❌ WebtoolConfig对象未找到', 'error');
+        }
+        
+        // 测试2: 检查具体配置项
+        if (window.WebtoolConfig) {
+            const config = window.WebtoolConfig;
+            
+            if (config.API_BASE_URL) {
+                log(`✅ API_BASE_URL: ${config.API_BASE_URL}`, 'success');
+            } else {
+                log('❌ API_BASE_URL未设置', 'error');
+            }
+            
+            if (config.API_TOKEN) {
+                log(`✅ API_TOKEN: ${config.API_TOKEN.substring(0, 10)}...`, 'success');
+            } else {
+                log('❌ API_TOKEN未设置', 'error');
+            }
+            
+            if (config.MAIN_SYSTEM_URL) {
+                log(`✅ MAIN_SYSTEM_URL: ${config.MAIN_SYSTEM_URL}`, 'success');
+            } else {
+                log('❌ MAIN_SYSTEM_URL未设置', 'error');
+            }
+        }
+        
+        // 测试3: 模拟配置合并
+        setTimeout(() => {
+            log('🔧 测试配置合并逻辑...', 'info');
+            
+            // 模拟配置合并
+            const defaultConfig = {
+                API_BASE_URL: 'http://localhost:8222/api',
+                API_TOKEN: '',
+                MAIN_SYSTEM_URL: 'http://localhost:8225'
+            };
+            
+            const finalConfig = {
+                ...defaultConfig,
+                ...window.WebtoolConfig
+            };
+            
+            log(`📋 最终API地址: ${finalConfig.API_BASE_URL}`, 'success');
+            log(`📋 最终Token: ${finalConfig.API_TOKEN ? '已设置' : '未设置'}`, 'success');
+            log(`📋 最终主系统地址: ${finalConfig.MAIN_SYSTEM_URL}`, 'success');
+            
+            log('✅ 配置测试完成！', 'success');
+        }, 1000);
+    </script>
+</body>
+</html>

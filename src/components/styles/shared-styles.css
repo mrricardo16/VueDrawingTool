@@ -1,0 +1,81 @@
+/* 共享样式 - 避免重复代码 */
+
+/* 迷你操作按钮样式 */
+.mini-action-btn {
+  padding: 8px 12px;
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 4px;
+  color: #e2e8f0;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mini-action-btn:hover {
+  background: #374151;
+  border-color: #718096;
+}
+
+.mini-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mini-action-btn:active {
+  transform: translateY(1px);
+}
+
+/* 动作按钮容器 */
+.action-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.action-notice {
+  text-align: center;
+  padding: 8px;
+  color: #718096;
+  font-size: 11px;
+}
+
+/* 滚动条样式 */
+.mini-tab-content::-webkit-scrollbar,
+.elements-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.mini-tab-content::-webkit-scrollbar-track,
+.elements-list::-webkit-scrollbar-track {
+  background: #2d3748;
+}
+
+.mini-tab-content::-webkit-scrollbar-thumb,
+.elements-list::-webkit-scrollbar-thumb {
+  background: #4a5568;
+  border-radius: 3px;
+}
+
+.mini-tab-content::-webkit-scrollbar-thumb:hover,
+.elements-list::-webkit-scrollbar-thumb:hover {
+  background: #718096;
+}
+
+/* 属性面板滚动条样式 */
+.properties-detail::-webkit-scrollbar {
+  width: 6px;
+}
+
+.properties-detail::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+.properties-detail::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 3px;
+}
+
+.properties-detail::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
