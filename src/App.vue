@@ -3,6 +3,7 @@
     <MapEditorShell
       :current-tool="currentTool"
       :selection-mode="selectionMode"
+      :line-reverse-enabled="lineReverseEnabled"
       :has-selection="hasSelection"
       :can-undo="canUndo"
       :is-loading="isLoading"
@@ -70,8 +71,8 @@ export default {
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 .app {
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;

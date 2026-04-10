@@ -3,6 +3,7 @@
     <DrawingTools
       :current-tool="currentTool"
       :selection-mode="selectionMode"
+      :line-reverse-enabled="lineReverseEnabled"
       :has-selection="hasSelection"
       :can-undo="canUndo"
       v-on="drawingToolsListeners"
@@ -21,6 +22,7 @@
         :is-loading="isLoading"
         :current-tool="currentTool"
         :selection-mode="selectionMode"
+        :line-reverse-enabled="lineReverseEnabled"
         :points="points"
         :lines="lines"
         :bsplines="bsplines"
@@ -47,6 +49,7 @@
           :areas="areas"
           v-on="propertyPanelListeners"
           @element-selection="relayElementSelection"
+          @element-focus="relayElementFocus"
         />
       </div>
     </div>
@@ -66,6 +69,7 @@ export default {
   props: {
     currentTool: { type: String, default: null },
     selectionMode: { type: String, default: 'single' },
+    lineReverseEnabled: { type: Boolean, default: false },
     hasSelection: { type: Boolean, default: false },
     canUndo: { type: Boolean, default: false },
     isLoading: { type: Boolean, default: false },
@@ -82,7 +86,7 @@ export default {
   },
   emits: [
     'canvas-ready',
-    'tool-change', 'selection-mode-change', 'perform-alignment',
+    'tool-change', 'selection-mode-change', 'reverse-toggle-change', 'perform-alignment',
     'upload-map', 'upload-to-server', 'save-local', 'fit-view', 'reset-view',
     'delete-selected', 'undo', 'clear-mode', 'shift-pressed', 'shift-released',
     'point-added', 'point-selected', 'line-selected', 'line-created',
@@ -92,7 +96,8 @@ export default {
     'area-created', 'area-anchor-drag-end', 'area-selected',
     'show-context-menu', 'drag-start', 'move-completed', 'show-toast',
     'update-point', 'update-line', 'update-text', 'update-curve', 'update-area',
-    'element-selection'
+    'element-selection',
+    'element-focus'
   ],
   data() {
     return {
@@ -100,7 +105,8 @@ export default {
       keyboardListeners: {},
       drawingCanvasListeners: {},
       propertyPanelListeners: {},
-      relayElementSelection: () => {}
+      relayElementSelection: () => {},
+      relayElementFocus: () => {}
     }
   },
   created() {
@@ -110,6 +116,7 @@ export default {
     this.drawingCanvasListeners = relay.drawingCanvasListeners
     this.propertyPanelListeners = relay.propertyPanelListeners
     this.relayElementSelection = relay.relayElementSelection
+    this.relayElementFocus = relay.relayElementFocus
   },
   mounted() {
     this.$emit('canvas-ready', this.$refs.drawingCanvas)

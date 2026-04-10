@@ -1,5 +1,5 @@
 export function computeMapBounds(points = []) {
-  if (!points.length) return null
+  if (!points || !points.length) return null
 
   let minX = Infinity
   let minY = Infinity
@@ -7,12 +7,69 @@ export function computeMapBounds(points = []) {
   let maxY = -Infinity
 
   points.forEach(p => {
-    minX = Math.min(minX, p.x)
-    minY = Math.min(minY, p.y)
-    maxX = Math.max(maxX, p.x)
-    maxY = Math.max(maxY, p.y)
+    if (p == null) return
+    const x = Number(p.x)
+    const y = Number(p.y)
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return
+    minX = Math.min(minX, x)
+    minY = Math.min(minY, y)
+    maxX = Math.max(maxX, x)
+    maxY = Math.max(maxY, y)
   })
 
+  if (minX === Infinity) return null
+  return { minX, minY, maxX, maxY }
+}
+
+export function computeAllBounds({ points = [], lines = [], bsplines = [], texts = [], areas = [] } = {}) {
+  // build quick lookup for points by id
+  const pointById = new Map()
+  for (const p of points) {
+    if (p && p.id != null) pointById.set(String(p.id), p)
+  }
+
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+
+  const include = (x, y) => {
+    const nx = Number(x), ny = Number(y)
+    if (!Number.isFinite(nx) || !Number.isFinite(ny)) return
+    minX = Math.min(minX, nx)
+    minY = Math.min(minY, ny)
+    maxX = Math.max(maxX, nx)
+    maxY = Math.max(maxY, ny)
+  }
+
+  // points
+  for (const p of points) if (p) include(p.x, p.y)
+
+  // lines: include endpoints via point lookup
+  for (const l of lines) {
+    if (!l) continue
+    const a = pointById.get(String(l.startPointId))
+    const b = pointById.get(String(l.endPointId))
+    if (a) include(a.x, a.y)
+    if (b) include(b.x, b.y)
+  }
+
+  // bspline control points
+  for (const b of bsplines) {
+    if (!b || !b.controlPoints) continue
+    for (const cp of b.controlPoints) include(cp.x, cp.y)
+  }
+
+  // texts
+  for (const t of texts) if (t) include(t.x, t.y)
+
+  // areas: include polygon points
+  for (const a of areas) {
+    if (!a || !a.points) continue
+    for (const pt of a.points) include(pt.x, pt.y)
+  }
+
+  if (minX === Infinity) return null
   return { minX, minY, maxX, maxY }
 }
 
@@ -23,9 +80,9 @@ export function updateScaleLimits(vm, fitScale) {
 }
 
 export function fitCanvasToPoints(vm) {
-  if (!vm.canvas || !vm.points.length) return
+  if (!vm.canvas) return
 
-  const bounds = computeMapBounds(vm.points)
+  const bounds = computeAllBounds({ points: vm.points || [], lines: vm.lines || [], bsplines: vm.bsplines || [], texts: vm.texts || [], areas: vm.areas || [] }) || computeMapBounds(vm.points)
   if (!bounds) return
 
   let { minX, minY, maxX, maxY } = bounds

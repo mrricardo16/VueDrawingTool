@@ -69,49 +69,7 @@
           </div>
         </div>
 
-        <!-- ── 状态标签页 ───────────────────────────────────── -->
-        <div v-else-if="activeTab === 'status'" class="status-content">
-          <div v-for="area in selectedAreasData" :key="area.id" class="status-item">
-            <div class="status-row">
-              <span class="status-label">区域ID:</span>
-              <span class="status-value">{{ area.id }}</span>
-            </div>
-            <div class="status-row">
-              <span class="status-label">顶点数量:</span>
-              <span class="status-value">{{ (area.points || []).length }}</span>
-            </div>
-            <div class="status-row">
-              <span class="status-label">容纳车辆:</span>
-              <span class="status-value">{{ area.carNum || 0 }} 辆</span>
-            </div>
-            <div class="status-row">
-              <span class="status-label">透明度:</span>
-              <span class="status-value">{{ area.opacity ?? 50 }}%</span>
-            </div>
-            <div class="status-row">
-              <span class="status-label">图层:</span>
-              <span class="status-value">{{ area.layerId || area.layerIds?.[0] || 'g' }}</span>
-            </div>
-            <div class="status-row">
-              <span class="status-label">颜色:</span>
-              <span class="status-value color-preview-wrap">
-                <span class="color-dot" :style="{ background: area.color || '#FFFFFF' }"></span>
-                {{ area.color || '#FFFFFF' }}
-              </span>
-            </div>
-
-            <div class="property-group-title">扩展字段状态</div>
-            <template v-if="Object.keys(area.fields || {}).length > 0">
-              <div v-for="(val, key) in area.fields" :key="key" class="status-row">
-                <span class="status-label">{{ key }}:</span>
-                <span class="status-value">{{ val || '未设置' }}</span>
-              </div>
-            </template>
-            <div v-else class="empty-hint">
-              <small>无扩展字段</small>
-            </div>
-          </div>
-        </div>
+        <!-- 状态标签页（已移除） -->
 
         <!-- ── 动作标签页 ───────────────────────────────────── -->
         <div v-else-if="activeTab === 'actions'" class="actions-content">
@@ -176,8 +134,7 @@ export default {
       activeTab: 'properties',
       areaTabs: [
         { key: 'properties', label: '属性' },
-        { key: 'status',     label: '状态' },
-        { key: 'actions',    label: '动作' }
+        { key: 'actions', label: '动作' }
       ],
       colorPresets: [
         { color: '#FFFFFF', label: '白色' },
@@ -275,7 +232,7 @@ export default {
   align-items: center;
   justify-content: center;
   color: #a0aec0;
-  font-size: 11px;
+  font-size: 12px;
   text-align: center;
   padding: 20px;
 }
@@ -299,13 +256,13 @@ export default {
 }
 .property-group label {
   color: #9ca3af;
-  font-size: 11px;
+  font-size: 12px;
   min-width: 60px;
   flex-shrink: 0;
 }
 .property-group-title {
   color: #6b7280;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -315,11 +272,11 @@ export default {
 }
 .readonly-input {
   background: #1f2937; border: 1px solid #374151; color: #6b7280;
-  padding: 2px 6px; border-radius: 3px; font-size: 11px; flex: 1;
+  padding: 2px 6px; border-radius: 3px; font-size: 12px; flex: 1;
 }
 .editable-input {
   background: #1f2937; border: 1px solid #4b5563; color: #e2e8f0;
-  padding: 2px 6px; border-radius: 3px; font-size: 11px; flex: 1;
+  padding: 2px 6px; border-radius: 3px; font-size: 12px; flex: 1;
 }
 .editable-input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 1px #3b82f6; }
 .color-input {
@@ -328,13 +285,13 @@ export default {
 }
 .editable-textarea {
   background: #1f2937; border: 1px solid #4b5563; color: #e2e8f0;
-  padding: 4px 6px; border-radius: 3px; font-size: 11px; flex: 1;
+  padding: 4px 6px; border-radius: 3px; font-size: 12px; flex: 1;
   resize: vertical; min-height: 30px;
 }
 .editable-textarea:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 1px #3b82f6; }
 .vertex-row {
   display: flex; align-items: center; gap: 8px;
-  padding: 2px 0; font-size: 11px;
+  padding: 2px 0; font-size: 12px;
 }
 .vertex-label { color: #60a5fa; font-weight: 600; min-width: 24px; }
 .vertex-coord { color: #9ca3af; }
@@ -343,26 +300,26 @@ export default {
 .status-item { display: flex; flex-direction: column; gap: 4px; }
 .status-row {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 3px 0; border-bottom: 1px solid #374151; font-size: 11px;
+  padding: 3px 0; border-bottom: 1px solid #374151; font-size: 12px;
 }
 .status-label { color: #9ca3af; }
 .status-value { color: #e2e8f0; text-align: right; }
 .color-preview-wrap { display: flex; align-items: center; gap: 4px; }
 .color-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid #4b5563; }
-.empty-hint { color: #6b7280; font-size: 11px; padding: 4px 0; }
+.empty-hint { color: #6b7280; font-size: 12px; padding: 4px 0; }
 
 /* 动作页 */
 .actions-content { display: flex; flex-direction: column; gap: 12px; }
 .action-group { display: flex; flex-direction: column; gap: 6px; }
 .action-group h5 {
-  color: #9ca3af; font-size: 10px; font-weight: 600;
+  color: #9ca3af; font-size: 12px; font-weight: 600;
   text-transform: uppercase; margin: 4px 0 2px;
   border-bottom: 1px solid #374151; padding-bottom: 2px;
 }
 .action-buttons { display: flex; flex-direction: column; gap: 4px; }
 .action-btn {
   background: #374151; border: 1px solid #4b5563; color: #e2e8f0;
-  padding: 4px 8px; border-radius: 4px; font-size: 11px;
+  padding: 4px 8px; border-radius: 4px; font-size: 12px;
   cursor: pointer; text-align: left; transition: background 0.15s;
 }
 .action-btn:hover { background: #4b5563; }
@@ -382,7 +339,7 @@ export default {
 .template-buttons { display: flex; flex-wrap: wrap; gap: 4px; }
 .tpl-btn {
   background: #1f2937; border: 1px solid #4b5563; color: #e2e8f0;
-  padding: 3px 8px; border-radius: 3px; font-size: 11px; cursor: pointer;
+  padding: 3px 8px; border-radius: 3px; font-size: 12px; cursor: pointer;
 }
 .tpl-btn:hover { background: #374151; border-color: #6b7280; }
 </style>

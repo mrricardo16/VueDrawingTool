@@ -4,9 +4,20 @@
 </template>
 
 <script>
+import { BSplineCalculator } from '../utils/BSplineCalculator.js'
+import { CoordinateUtils } from '../utils/coordinateUtils.js'
+import { worldToScreen, collectAnchorHandles, hitTestAnchorHandle } from '../composables/anchor/anchorHandleMath.js'
+
 /**
  * AnchorEditHandler.vue
  *
+ * 优化注释：
+ * - 增加了职责说明的简洁性。
+ * - 明确了架构要点的逻辑顺序。
+ * - 对常量和方法的注释进行了补充。
+ */
+
+/**
  * 职责：
  *   1. 单选曲线（bspline）时，在 overlay canvas 上绘制控制点把手，
  *      并允许用户拖拽任意控制点来实时调整曲线形状。
@@ -24,14 +35,6 @@
  *   - drawHandles(ctx) 由 DrawingCanvas._drawOverlays() 调用，
  *     将把手和预览曲线渲染到独立 overlay canvas，不污染 base cache。
  */
-
-import { CoordinateUtils } from '../utils/coordinateUtils.js'
-import { BSplineCalculator } from '../utils/BSplineCalculator.js'
-import {
-  worldToScreen,
-  collectAnchorHandles,
-  hitTestAnchorHandle
-} from '../composables/anchor/anchorHandleMath.js'
 
 // ─── 常量 ───────────────────────────────────────────────────────────────────
 
@@ -81,6 +84,9 @@ export default {
 
     /** activeBspline 的终点对象（从 points 数组中解析） */
     bsplineEndPoint: { type: Object, default: null },
+
+    /** 根据 id 获取点对象；用于兼容仅保留 controlPointIds 的曲线数据 */
+    getPointById: { type: Function, default: null },
 
     /**
      * 当前处于编辑状态的区域对象（单选时由 DrawingCanvas 计算）。
@@ -162,6 +168,17 @@ export default {
   },
 
   methods: {
+    _resolveBsplineControlPoints(bspline) {
+      if (!bspline) return []
+      if (Array.isArray(bspline.controlPoints) && bspline.controlPoints.length > 0) {
+        return bspline.controlPoints
+      }
+      if (Array.isArray(bspline.controlPointIds) && bspline.controlPointIds.length > 0 && typeof this.getPointById === 'function') {
+        return bspline.controlPointIds.map(id => this.getPointById(id)).filter(Boolean)
+      }
+      return []
+    },
+
     // ─── 监听器管理 ─────────────────────────────────────────────────────────
 
     _attachListeners(canvas) {
@@ -213,6 +230,7 @@ export default {
         dragging: this._dragging,
         dragControlPoints: this._dragControlPoints,
         dragAreaPoints: this._dragAreaPoints,
+        getPointById: this.getPointById,
         scale: this.scale,
         offset: this.offset,
         bsplineHandleType: HANDLE_TYPE.BSPLINE_CP,
@@ -244,6 +262,7 @@ export default {
       if (!hit) return
 
       // 独占此事件：阻止 MouseEventHandler 及之后监听器处理（框选/点击选中）
+      event.preventDefault()
       event.stopImmediatePropagation()
 
       this._dragging = true
@@ -252,12 +271,13 @@ export default {
 
       if (hit.type === HANDLE_TYPE.BSPLINE_CP) {
         // 保存 before 快照（深拷贝，含 controlPoints），供 mouseup 写入历史
+        const cpsSnapshot = this._resolveBsplineControlPoints(this.activeBspline)
         this._beforeSnapshot = {
           ...this.activeBspline,
-          controlPoints: (this.activeBspline.controlPoints || []).map(cp => ({ ...cp })),
+          controlPoints: cpsSnapshot.map(cp => ({ ...cp })),
         }
         // 直接引用 store 中的实际控制点对象——就地修改 = 实时渲染
-        this._dragControlPoints = this.activeBspline.controlPoints || []
+        this._dragControlPoints = this._resolveBsplineControlPoints(this.activeBspline)
       } else if (hit.type === HANDLE_TYPE.AREA_VERTEX) {
         // 保存 before 快照
         this._beforeSnapshot = {
@@ -271,6 +291,10 @@ export default {
 
     _handleMouseMove(event) {
       if (!this._dragging || !this._canvasRect) return
+
+      // 独占拖拽过程，避免 MouseEventHandler 在 currentTool=null 时进入框选流程
+      event.preventDefault()
+      event.stopImmediatePropagation()
 
       const { sx, sy } = this._getScreenXY(event)
       const world = CoordinateUtils.screenToWorld(sx, sy, this.scale, this.offset)
@@ -296,6 +320,7 @@ export default {
       if (!this._dragging) return
 
       // 阻止 MouseEventHandler 的 document mouseup 处理器触发（防止清除选中状态）
+      event.preventDefault()
       event.stopImmediatePropagation()
 
       this._dragging = false
@@ -351,7 +376,7 @@ export default {
     _drawBsplineHandles(ctx) {
       const cps = this._dragging
         ? this._dragControlPoints
-        : (this.activeBspline.controlPoints || [])
+        : this._resolveBsplineControlPoints(this.activeBspline)
 
       // 没有控制点则无需绘制（直线 bspline）
       if (cps.length === 0) return

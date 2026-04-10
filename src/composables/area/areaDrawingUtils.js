@@ -12,9 +12,11 @@ export function worldToScreen(x, y, scale, offset) {
   }
 }
 
+import { nextId } from '../../utils/idGenerator.js'
+
 export function createAreaPayload(areaPoints) {
   return {
-    id: Date.now(),
+    id: nextId().toString(),
     layerName: 'g',
     name: 'NoName',
     opacity: 50,

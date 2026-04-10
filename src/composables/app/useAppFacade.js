@@ -26,6 +26,7 @@ export function useAppFacade() {
   const {
     currentTool,
     selectionMode,
+    lineReverseEnabled,
     points,
     lines,
     bsplines,
@@ -79,7 +80,7 @@ export function useAppFacade() {
 
   const {
     handleFitView, handleResetView, focusOnElement
-  } = useViewControl(drawingCanvas, pointById, lineById, textById, bsplineById)
+  } = useViewControl(drawingCanvas, pointById, lineById, textById, bsplineById, areas)
 
   const { isAligning, performAlignment: alignElements, canAlign, getAlignmentStats } =
     useAlignment(points, texts)
@@ -93,9 +94,11 @@ export function useAppFacade() {
     handleAreaAnchorDragEnd,
     performAlignment,
     onElementSelection,
+    onElementFocus,
     handleToolChange,
     handleClearMode,
     handleSelectionModeChange,
+    handleLineReverseToggleChange,
     handleShiftPressed,
     handleShiftReleased
   } = useEditorActions({
@@ -114,6 +117,7 @@ export function useAppFacade() {
     'canvas-ready': handleCanvasReady,
     'tool-change': handleToolChange,
     'selection-mode-change': handleSelectionModeChange,
+    'reverse-toggle-change': handleLineReverseToggleChange,
     'perform-alignment': performAlignment,
     'upload-map': handleUploadMap,
     'upload-to-server': handleUploadToServer,
@@ -151,11 +155,13 @@ export function useAppFacade() {
     'update-text': mapStore.handleUpdateText,
     'update-curve': mapStore.handleUpdateCurve,
     'update-area': handleUpdateArea,
-    'element-selection': onElementSelection
+    'element-selection': onElementSelection,
+    'element-focus': onElementFocus
   }
 
   const appFeedbackListeners = {
     'change-point-type': mapStore.handleChangePointType,
+    'context-menu-action': mapStore.handleContextMenuAction,
     'close-context-menu': mapStore.handleCloseContextMenu,
     'cancel-loading': mapStore.handleCancelLoading,
     'close-toast': hideToast
@@ -166,6 +172,7 @@ export function useAppFacade() {
 
     currentTool,
     selectionMode,
+    lineReverseEnabled,
     points,
     lines,
     bsplines,
@@ -204,6 +211,7 @@ export function useAppFacade() {
 
     handleToolChange,
     handleSelectionModeChange,
+    handleLineReverseToggleChange,
     handleClearMode,
     handleShiftPressed,
     handleShiftReleased,

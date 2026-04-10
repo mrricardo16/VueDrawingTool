@@ -3,6 +3,7 @@
  * 元素的增删改操作，从 App.vue 的 setup() 中提取。
  */
 import { useLayerStore } from '../stores/layerStore.js'
+import { nextId } from '../utils/idGenerator.js'
 
 /**
  * @typedef {import('../models/types').Point} Point
@@ -314,7 +315,7 @@ export function useElementOps({
 
   /** @param {Area} area */
   const handleAreaCreated = (area) => {
-    const newArea = { ...area, id: Date.now().toString() }
+    const newArea = { ...area, id: nextId().toString() }
     // 将新区域分配到当前所有可见图层
     const areaWithLayer = layerStore.assignElementToVisibleLayers(newArea)
     areas.value.push(areaWithLayer)

@@ -2,18 +2,42 @@
   <div class="property-panel">
     <div class="panel-header">
       <h3>属性面板</h3>
+      <div class="search-wrapper">
+        <input
+          ref="searchInput"
+          v-model="inputText"
+          @keyup.enter="onSearchEnter"
+          class="panel-search"
+          placeholder="搜索 ID / 类型 / 名字"
+        />
+        <button v-if="inputText" class="search-clear" @click="clearSearch" aria-label="清除搜索">✕</button>
+      </div>
     </div>
     
+    <!-- 三列标题（静态、不可点击），与元素列表列对齐 -->
+    <div class="elements-headers">
+      <span class="header-id">ID
+        <button class="sort-toggle" @click="toggleSort" :title="sortAsc ? '升序' : '降序'">{{ sortAsc ? '▲' : '▼' }}</button>
+      </span>
+      <span class="header-type">类型</span>
+      <span class="header-name">名字</span>
+    </div>
+
     <!-- 上部分：所有元素统一列表 -->
     <ElementList
       :points="points"
       :lines="lines"
       :texts="texts"
       :bsplines="bsplines"
+      :areas="areas"
+      :filter-text="searchText"
+      :sort-asc="sortAsc"
       :selected-points="selectedPoints"
       :selected-lines="selectedLines"
       :selected-texts="selectedTexts"
+      :selected-areas="selectedAreas"
       @select-element="handleElementSelection"
+      @focus-element="handleElementFocus"
       ref="elementList"
     />
     
@@ -93,7 +117,7 @@ export default {
       default: () => []
     }
   },
-  emits: ['update-point', 'update-line', 'update-text', 'update-curve', 'update-area', 'element-selection'],
+  emits: ['update-point', 'update-line', 'update-text', 'update-curve', 'update-area', 'element-selection', 'element-focus'],
   computed: {
     activeEditorType() {
       return resolveActiveEditorType({
@@ -146,6 +170,10 @@ export default {
         }
       })
     },
+
+    handleElementFocus(type, id) {
+      this.$emit('element-focus', type, id)
+    },
     
     handleUpdatePoint(point) {
       this.$emit('update-point', point)
@@ -158,8 +186,36 @@ export default {
     handleUpdateText(text) {
       this.$emit('update-text', text)
     }
+    ,
+    onSearchEnter() {
+      this.searchText = (this.inputText || "").toString().trim()
+    },
+
+    clearSearch() {
+      this.inputText = ""
+      this.searchText = ""
+      this.$nextTick(() => {
+        if (this.$refs.searchInput) this.$refs.searchInput.focus()
+      })
+    }
+    ,
+
+    toggleSort() {
+      this.sortAsc = !this.sortAsc
+    },
+  },
+
+  data() {
+    return {
+      inputText: "",
+      // 实际用于过滤的值，仅在按回车或清除时更新
+      searchText: "",
+      // 元素列表的排序方向，true = 升序
+      sortAsc: true
+    }
   }
 }
+
 </script>
 
 <style scoped>
@@ -187,7 +243,90 @@ export default {
 .panel-header h3 {
   margin: 0;
   color: #e2e8f0;
-  font-size: 14px;
+  font-size: 12px;
+}
+
+.panel-search {
+  background: #1f2937;
+  border: 1px solid #374151;
+  color: #e2e8f0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  width: 180px;
+}
+
+.search-wrapper {
+  position: relative;
+}
+
+.panel-search {
+  padding-right: 28px;
+}
+
+.search-clear {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.search-clear:hover {
+  color: #e2e8f0;
+}
+
+.sort-toggle {
+  margin-left: 8px;
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.sort-toggle:hover {
+  color: #e2e8f0;
+}
+
+/* 三列静态标题（与 ElementList 的三列对齐） */
+.elements-headers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: center;
+  padding: 6px 8px;
+  /* subtle differentiated background */
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0));
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  color: #9ca3af;
+  font-size: 12px;
+  flex-shrink: 0;
+  box-shadow: inset 0 -1px rgba(0,0,0,0.16);
+}
+.elements-headers span {
+  padding: 2px 6px;
+  position: relative;
+}
+.elements-headers .header-id {
+  text-align: left;
+  font-weight: 600;
+}
+.elements-headers .header-type {
+  text-align: center;
+}
+.elements-headers .header-name {
+  text-align: left;
+}
+
+/* 竖向分割线：在每项之间显示细分隔 */
+.elements-headers span:not(:last-child) {
+  border-right: 1px solid rgba(255,255,255,0.03);
 }
 
 .properties-detail {
@@ -203,7 +342,7 @@ export default {
   align-items: center;
   justify-content: center;
   color: #a0aec0;
-  font-size: 11px;
+  font-size: 12px;
   text-align: center;
   padding: 20px;
 }
@@ -214,7 +353,7 @@ export default {
   color: #6b7280;
   padding: 2px 6px;
   border-radius: 3px;
-  font-size: 11px;
+  font-size: 12px;
   flex: 1;
 }
 
@@ -224,7 +363,7 @@ export default {
   color: #e2e8f0;
   padding: 2px 6px;
   border-radius: 3px;
-  font-size: 11px;
+  font-size: 12px;
   flex: 1;
 }
 
@@ -240,7 +379,7 @@ export default {
   color: #e2e8f0;
   padding: 2px 6px;
   border-radius: 3px;
-  font-size: 11px;
+  font-size: 12px;
   flex: 1;
 }
 
@@ -256,7 +395,7 @@ export default {
   color: #e2e8f0;
   padding: 4px 6px;
   border-radius: 3px;
-  font-size: 11px;
+  font-size: 12px;
   flex: 1;
   resize: vertical;
   min-height: 30px;

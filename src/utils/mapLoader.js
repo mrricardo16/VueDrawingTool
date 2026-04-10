@@ -9,6 +9,35 @@ export class MapLoader {
     this.loadDelay = 5 // 减少批次间延迟(ms)
   }
 
+  _pickField(obj, names) {
+    if (!obj || typeof obj !== 'object') return undefined
+    for (const name of names) {
+      if (Object.prototype.hasOwnProperty.call(obj, name) && obj[name] !== undefined) {
+        return obj[name]
+      }
+    }
+    const lowerMap = Object.keys(obj).reduce((acc, key) => {
+      acc[key.toLowerCase()] = obj[key]
+      return acc
+    }, {})
+    for (const name of names) {
+      const v = lowerMap[name.toLowerCase()]
+      if (v !== undefined) return v
+    }
+    return undefined
+  }
+
+  _normalizeMapData(mapData) {
+    if (!mapData || typeof mapData !== 'object') return mapData
+    return {
+      Sites: this._pickField(mapData, ['Sites', 'sites']) || {},
+      Tracks: this._pickField(mapData, ['Tracks', 'tracks']) || {},
+      Curves: this._pickField(mapData, ['Curves', 'curves']) || {},
+      Text: this._pickField(mapData, ['Text', 'text']) || {},
+      Area: this._pickField(mapData, ['Area', 'area']) || {}
+    }
+  }
+
   _normId(v) {
     // 兼容 JSON 中 id/siteA/siteB 可能为数字或数字字符串的情况
     if (typeof v === 'string') {
@@ -34,6 +63,7 @@ export class MapLoader {
    */
   async loadMapFromData(mapData, onProgress, onComplete, onError) {
     try {
+      mapData = this._normalizeMapData(mapData)
       const totalWork = this.calculateTotalWork(mapData)
       let completedWork = 0
 
@@ -142,6 +172,7 @@ export class MapLoader {
    * 计算总工作量
    */
     calculateTotalWork(mapData) {
+      mapData = this._normalizeMapData(mapData)
       let total = 0
       if (mapData.Sites) total += Object.keys(mapData.Sites).length
       if (mapData.Tracks) total += Object.keys(mapData.Tracks).length

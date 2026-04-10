@@ -29,6 +29,7 @@ import { createMouseTextEditingManager } from '../composables/mouse/textEditingM
 import { createMouseDownToolDispatcher } from '../composables/mouse/mouseDownToolDispatcher.js'
 import { createMouseSelectionEvents } from '../composables/mouse/selectionEvents.js'
 import { createMouseMoveFlow } from '../composables/mouse/mouseMoveFlow.js'
+import { nextId } from '../utils/idGenerator.js'
 
 export default {
   name: 'MouseEventHandler',
@@ -46,6 +47,7 @@ export default {
     areas: { type: Array, default: () => [] },
     selectedAreas: { type: Array, default: () => [] },
     selectionMode: { type: String, default: 'single' },
+    lineReverseEnabled: { type: Boolean, default: false },
     scale: { type: Number, default: 1 },
     minScale: { type: Number, default: 0.001 },
     maxScale: { type: Number, default: 50 },
@@ -59,6 +61,7 @@ export default {
     'update-canvas-state', 'show-context-menu', 'show-toast'
   ],
   created() {
+    this.layerStore = useLayerStore()
     this.throttledMouseMove = EventUtils.throttle(this.handleMouseMoveCore.bind(this), 16)
     this.throttledWheel = EventUtils.throttle(this.handleWheelCore.bind(this), 16)
     // debouncedSelection 已移除：鼠标移动有 16ms 节流，无需额外 debounce，避免框选框延迟
@@ -85,6 +88,7 @@ export default {
   },
   data() {
     return {
+      layerStore: null,
       isDragging: false,
       isPanning: false,
       panStart: { x: 0, y: 0 },
@@ -137,14 +141,13 @@ export default {
       return this.selectedPoints.length + this.selectedLines.length +
         this.selectedTexts.length + this.selectedAreas.length
     },
-    layerStore() {
-      return useLayerStore()
-    },
     visibleLayerNames() {
       // 返回所有可见的图层ID（而不是名称）
-      return this.layerStore.layers
-        .filter(layer => layer.visible)
-        .map(layer => layer.id)
+      return this.layerStore?.layers
+        ? this.layerStore.layers
+            .filter(layer => layer.visible)
+            .map(layer => layer.id)
+        : []
     }
   },
   watch: {
@@ -447,7 +450,7 @@ export default {
       
       // 创建新点对象（用于重合检测）
       const newPoint = {
-        id: Date.now(), x: worldX, y: worldY,
+        id: nextId().toString(), x: worldX, y: worldY,
         type: this.currentTool || 'point',
         name: 'NoName', color: '', angle: 0.0, 
         fields: {}, mustFree: []
@@ -485,13 +488,17 @@ export default {
         }
       } else {
         if (clicked && clicked.id !== this.tempLineStart.id && !this.lineExists(this.tempLineStart.id, clicked.id)) {
+          const fields = {}
+          if (this.lineReverseEnabled) {
+            fields.reverseDst = String(clicked.id)
+          }
           const lineData = {
-            id: Date.now(),
+            id: nextId().toString(),
             startPointId: this.tempLineStart.id,
             endPointId: clicked.id,
             mode: this.selectionMode,
             name: 'NoName', color: '', angle: 0.0, 
-            fields: {}, mustFree: []
+            fields, mustFree: []
             // layerIds将由useElementOps.js中的assignElementToVisibleLayers添加
           }
           if (import.meta.env.DEV) console.log('🔍 DEBUG: Emitting line-created', lineData)
@@ -532,6 +539,10 @@ export default {
 
     createCurve() {
       if (this.curveStartPoint && this.curveEndPoint) {
+        const fields = {}
+        if (this.lineReverseEnabled) {
+          fields.reverseDst = String(this.curveEndPoint.id)
+        }
         this.$emit('bspline-created', {
           id: Date.now(),
           startPointId: this.curveStartPoint.id,
@@ -541,7 +552,7 @@ export default {
           params: { ...this.bsplineParams },
           mode: this.selectionMode,
           name: 'NoName', color: '', angle: 0.0, 
-          fields: {}, mustFree: []
+          fields, mustFree: []
           // layerIds将由useElementOps.js中的assignElementToVisibleLayers添加
         })
         this.resetCurveState()

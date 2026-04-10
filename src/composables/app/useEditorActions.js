@@ -23,6 +23,9 @@ export function useEditorActions({
   const handleCanvasReady = (canvasRef) => {
     drawingCanvas.value = canvasRef
     mapStore.setDrawingCanvas(canvasRef)
+    if (typeof mapStore.tryAutoLoadFromServer === 'function') {
+      mapStore.tryAutoLoadFromServer()
+    }
   }
 
   /** @param {any} payload */
@@ -74,6 +77,11 @@ export function useEditorActions({
     }
   }
 
+  /** @param {'point'|'line'|'curve'|'text'|'area'|string} type @param {number|string} id */
+  const onElementFocus = (type, id) => {
+    focusOnElement(type, id)
+  }
+
   /** @param {string|null} tool */
   const handleToolChange = (tool) => {
     if (currentTool.value === tool) mapStore.setTool(null)
@@ -87,6 +95,11 @@ export function useEditorActions({
   /** @param {string} mode */
   const handleSelectionModeChange = (mode) => {
     mapStore.setSelectionMode(mode)
+  }
+
+  /** @param {boolean} enabled */
+  const handleLineReverseToggleChange = (enabled) => {
+    mapStore.setLineReverseEnabled(enabled)
   }
 
   const handleShiftPressed = () => {
@@ -106,9 +119,11 @@ export function useEditorActions({
     handleAreaAnchorDragEnd,
     performAlignment,
     onElementSelection,
+    onElementFocus,
     handleToolChange,
     handleClearMode,
     handleSelectionModeChange,
+    handleLineReverseToggleChange,
     handleShiftPressed,
     handleShiftReleased
   }

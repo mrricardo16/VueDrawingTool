@@ -101,7 +101,7 @@ export default {
 .loading-header h3 {
   margin: 0;
   color: #ffffff;
-  font-size: 18px;
+  font-size: 12px;
   font-weight: 600;
   text-align: center;
 }
@@ -128,7 +128,7 @@ export default {
 
 .progress-text {
   color: #ffffff;
-  font-size: 14px;
+  font-size: 12px;
   text-align: center;
   margin-bottom: 16px;
 }
@@ -154,7 +154,7 @@ export default {
   padding: 8px 16px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
   transition: all 0.2s ease;
 }
 

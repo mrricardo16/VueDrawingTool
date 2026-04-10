@@ -1,7 +1,10 @@
 /**
  * SpatialGrid.js
- * 二维空间哈希网格，用于快速邻域查询。
- * 从 MouseEventHandler 中提取，解除其单一职责过重的问题。
+ *
+ * 优化注释：
+ * - 增加了类职责的简洁说明。
+ * - 为方法添加了更详细的参数和返回值描述。
+ * - 对静态构建方法的用途进行了补充说明。
  */
 
 export class SpatialGrid {
@@ -102,6 +105,14 @@ export class SpatialGrid {
   }
 
   // ─── 便捷静态构建方法 ───────────────────────────────────────────────
+
+  /**
+   * 静态构建方法说明：
+   * - fromPoints: 为点数组构建网格。
+   * - fromTexts: 为文本数组构建网格。
+   * - fromLines: 为直线数组构建网格，依赖点的 ID 查找。
+   * - fromBsplines: 为 B 样条数组构建网格，使用 AABB 近似。
+   */
 
   /** 为点数组构建网格 */
   static fromPoints(points, cellSize) {

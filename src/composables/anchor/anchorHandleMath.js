@@ -14,6 +14,7 @@ export function collectAnchorHandles({
   dragging,
   dragControlPoints,
   dragAreaPoints,
+  getPointById,
   scale,
   offset,
   bsplineHandleType,
@@ -22,7 +23,13 @@ export function collectAnchorHandles({
   const handles = []
 
   if (activeBspline) {
-    const cps = dragging ? dragControlPoints : (activeBspline.controlPoints || [])
+    const cps = dragging
+      ? dragControlPoints
+      : (activeBspline.controlPoints?.length
+        ? activeBspline.controlPoints
+        : (activeBspline.controlPointIds || [])
+          .map(id => (typeof getPointById === 'function' ? getPointById(id) : null))
+          .filter(Boolean))
     for (let i = 0; i < cps.length; i++) {
       const sc = worldToScreen(cps[i].x, cps[i].y, scale, offset)
       handles.push({ type: bsplineHandleType, index: i, sx: sc.x, sy: sc.y })

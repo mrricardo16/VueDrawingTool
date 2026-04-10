@@ -5,6 +5,7 @@
       :position="contextMenuPosition"
       :selected-point="contextMenuSelectedPoint"
       @change-point-type="$emit('change-point-type', $event)"
+      @menu-action="$emit('context-menu-action', $event)"
       @close="$emit('close-context-menu')"
     />
 
@@ -55,7 +56,7 @@ export default {
     toastDuration: { type: Number, default: 3000 },
     toastPosition: { type: Object, default: () => ({ top: 20, right: 20 }) }
   },
-  emits: ['change-point-type', 'close-context-menu', 'cancel-loading', 'close-toast']
+  emits: ['change-point-type', 'context-menu-action', 'close-context-menu', 'cancel-loading', 'close-toast']
 }
 </script>
 

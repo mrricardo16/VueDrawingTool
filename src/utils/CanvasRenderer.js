@@ -146,10 +146,31 @@ export class CanvasRenderer {
       const es = CoordinateUtils.worldToScreen(ep.x, ep.y, scale, offset)
       const isSelected = selectedSet.has(line.id)
       const color = isSelected ? '#ffe66d' : '#B8C5D6'
+      const isReverseLine = this._isReverseLine(line)
 
-      RenderUtils.drawLine(ctx, ss.x, ss.y, es.x, es.y, color, 2)
+      if (isReverseLine && !isSelected) {
+        this._drawReverseLineSplit(ss, es, color)
+      } else {
+        RenderUtils.drawLine(ctx, ss.x, ss.y, es.x, es.y, color, 2)
+      }
       if (line.mode === 'single') this._drawDirectionArrow(ss.x, ss.y, es.x, es.y, isSelected)
     }
+  }
+
+  _isReverseLine(line) {
+    const reverseDst = line?.fields?.reverseDst
+    return reverseDst !== undefined && reverseDst !== null && String(reverseDst) !== ''
+  }
+
+  _drawReverseLineSplit(start, end, normalColor) {
+    const ctx = this.ctx
+    const mid = {
+      x: (start.x + end.x) / 2,
+      y: (start.y + end.y) / 2
+    }
+
+    RenderUtils.drawLine(ctx, start.x, start.y, mid.x, mid.y, '#22D3EE', 2)
+    RenderUtils.drawLine(ctx, mid.x, mid.y, end.x, end.y, normalColor, 2)
   }
 
   // ─── 点 ────────────────────────────────────────────────────────────────
@@ -192,6 +213,27 @@ export class CanvasRenderer {
         RenderUtils.drawFilledRect(ctx, sc.x, sc.y, size, siteFill, isSelected ? '#ffe66d' : null)
       } else {
         RenderUtils.drawPoint(ctx, sc.x, sc.y, radius, fillColor)
+      }
+
+      // 如果点被标记为禁止锁定/禁用（preventLock），绘制一个较贴合、低对比度的红色环作为视觉提示
+      try {
+        const disabled = point?.fields && (point.fields.preventLock === 'true' || point.fields.preventLock === true)
+        if (disabled) {
+          ctx.save()
+          // 根据点半径和缩放计算不突兀的线宽与半径：环应比点稍大，避开覆盖点的视觉中心
+          const lineWidth = Math.max(1, 1.5 * (1 / Math.max(0.5, (scale || 1))))
+          const ringRadius = Math.max(radius + lineWidth / 2 + 2, radius + 3)
+          ctx.beginPath()
+          ctx.arc(sc.x, sc.y, ringRadius, 0, Math.PI * 2)
+          ctx.strokeStyle = 'rgba(255,80,80,0.6)'
+          ctx.lineWidth = lineWidth
+          ctx.setLineDash([])
+          ctx.stroke()
+          ctx.restore()
+        }
+      } catch (e) {
+        // 绘制容错：任何异常不应中断主渲染流程
+        console.warn('[CanvasRenderer] draw disabled ring error', e)
       }
     }
   }
@@ -240,7 +282,6 @@ export class CanvasRenderer {
   // ─── B 样条 ────────────────────────────────────────────────────────────
 
   drawBsplines(bsplines, getPointById, selectedLines, scale, offset) {
-    // selectedLines 已经是 CompatSet，直接使用 .has() 方法，避免includes()的O(n)查找
     for (const bspline of bsplines) {
       const sp = getPointById(bspline.startPointId)
       const ep = getPointById(bspline.endPointId)
@@ -250,15 +291,109 @@ export class CanvasRenderer {
         ? bspline.controlPoints
         : (bspline.controlPointIds || []).map(id => getPointById(id)).filter(Boolean)
 
-      const isSelected = selectedLines.has(bspline.id) // 优化：从O(n)降到O(1)
+      const isSelected = selectedLines.has(bspline.id)
       const color = isSelected ? '#ffe66d' : '#B8C5D6'
+      const isReverseLine = this._isReverseLine(bspline)
 
-      this._drawBSplineWithEndpoints(sp, ep, ctrlPts, bspline.params || {}, color, 2, bspline.id, scale, offset)
+      // 箭头分界点
+      let splitAt = null
+      if (isReverseLine && !isSelected && bspline.mode === 'single') {
+        // 计算箭头分界点
+        const segments = 50
+        const cacheKey = this.bsplineCalculator.generateCacheKey(
+          bspline.id, sp, ep, ctrlPts, { segments }
+        )
+        const worldPts = this._getOrBuildWorldPoints(
+          cacheKey, sp, ep, ctrlPts, segments
+        )
+        const midpointInfo = this.bsplineCalculator.calculateCurveMidpoint(
+          worldPts, scale, offset
+        )
+        if (midpointInfo && midpointInfo.position) {
+          splitAt = midpointInfo.position
+        }
+      }
+
+      if (isReverseLine && !isSelected) {
+        this._drawReverseBSplineSplit(sp, ep, ctrlPts, bspline.params || {}, bspline.id, scale, offset, color, splitAt)
+      } else {
+        this._drawBSplineWithEndpoints(sp, ep, ctrlPts, bspline.params || {}, color, 2, bspline.id, scale, offset)
+      }
 
       if (bspline.mode === 'single') {
         this._drawCurveDirectionArrow(sp, ep, ctrlPts, isSelected, bspline.id, scale, offset)
       }
     }
+  }
+
+  _drawPolyline(points, color, lineWidth = 2) {
+    const ctx = this.ctx
+    if (!ctx || !Array.isArray(points) || points.length < 2) return
+
+    ctx.beginPath()
+    ctx.moveTo(points[0].x, points[0].y)
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo(points[i].x, points[i].y)
+    }
+    ctx.strokeStyle = color
+    ctx.lineWidth = lineWidth
+    ctx.lineCap = 'round'
+    ctx.stroke()
+  }
+
+  _drawReverseBSplineSplit(startPoint, endPoint, controlPoints, params, bsplineId, scale, offset, normalColor = '#B8C5D6', splitAt = null) {
+    const ox = offset?.x || 0
+    const oy = offset?.y || 0
+
+    // 无控制点时退化为直线分段着色
+    if (!controlPoints.length) {
+      const ss = CoordinateUtils.worldToScreen(startPoint.x, startPoint.y, scale, offset)
+      const es = CoordinateUtils.worldToScreen(endPoint.x, endPoint.y, scale, offset)
+      this._drawReverseLineSplit(ss, es, normalColor)
+      return
+    }
+
+    const segments = this.calculateOptimalSegments(startPoint, endPoint, controlPoints, scale)
+    const cacheKey = this.bsplineCalculator.generateCacheKey(
+      bsplineId, startPoint, endPoint, controlPoints, { ...params, segments }
+    )
+    const worldPts = this._getOrBuildWorldPoints(
+      cacheKey, startPoint, endPoint, controlPoints, segments
+    )
+
+    const screenPts = [
+      { x: startPoint.x * scale + ox, y: -startPoint.y * scale + oy },
+      ...worldPts.map(p => ({ x: p.x * scale + ox, y: -p.y * scale + oy }))
+    ]
+
+    const endScreen = { x: endPoint.x * scale + ox, y: -endPoint.y * scale + oy }
+    const last = screenPts[screenPts.length - 1]
+    if (!last || Math.abs(last.x - endScreen.x) > 0.5 || Math.abs(last.y - endScreen.y) > 0.5) {
+      screenPts.push(endScreen)
+    }
+
+    if (screenPts.length < 2) return
+
+    // 分界点为箭头位置（有则用），否则为中点
+    let splitIndex = Math.max(1, Math.floor((screenPts.length - 1) / 2))
+    if (splitAt) {
+      // 找到距离splitAt最近的点作为分界
+      let minDist = Infinity
+      for (let i = 1; i < screenPts.length; i++) {
+        const dx = screenPts[i].x - splitAt.x
+        const dy = screenPts[i].y - splitAt.y
+        const dist = dx * dx + dy * dy
+        if (dist < minDist) {
+          minDist = dist
+          splitIndex = i
+        }
+      }
+    }
+    const firstHalf = screenPts.slice(0, splitIndex + 1)
+    const secondHalf = screenPts.slice(splitIndex)
+
+    this._drawPolyline(firstHalf, '#22D3EE', 2)
+    this._drawPolyline(secondHalf, normalColor, 2)
   }
 
   _getOrBuildWorldPoints(cacheKey, startPoint, endPoint, controlPoints, segments) {
