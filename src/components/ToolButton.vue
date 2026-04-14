@@ -1,21 +1,27 @@
 <template>
-  <div 
-    :class="['tool-button-container', { 
-      active: isActive,
-      'has-dropdown': hasDropdown,
-      compact: compact,
-      'dropdown-open': showDropdown
-    }]"
+  <div
+    :class="[
+      'tool-button-container',
+      {
+        active: isActive,
+        'has-dropdown': hasDropdown,
+        compact: compact,
+        'dropdown-open': showDropdown,
+      },
+    ]"
   >
     <!-- 主工具按钮 -->
-    <button 
+    <button
       :class="['tool-btn', { active: isActive }]"
+      :title="tool.name"
       @mousedown.stop
       @mouseup.stop
       @click.stop="handleClick"
-      :title="compact ? tool.name : ''"
     >
-      <span class="tool-icon">{{ tool.icon }}</span>
+      <span class="tool-icon">
+        <img v-if="isImageIcon(tool.icon)" :src="tool.icon" :alt="tool.name" class="tool-icon-img" />
+        <span v-else>{{ tool.icon }}</span>
+      </span>
       <span v-if="!compact" class="tool-name">{{ tool.name }}</span>
     </button>
     
@@ -60,32 +66,32 @@
 </template>
 
 <script>
-import { computed } from 'vue'
-import { useToolButtonDropdown } from '../composables/useToolButtonDropdown.js'
+import { computed } from "vue";
+import { useToolButtonDropdown } from "../composables/useToolButtonDropdown.js";
 
 export default {
-  name: 'ToolButton',
+  name: "ToolButton",
   props: {
     tool: {
       type: Object,
-      required: true
+      required: true,
     },
     isActive: {
       type: Boolean,
-      default: false
+      default: false,
     },
     compact: {
       type: Boolean,
-      default: false
+      default: false,
     },
     dropdownConfig: {
       type: Object,
-      default: null
-    }
+      default: null,
+    },
   },
-  emits: ['click', 'dropdown-action'],
+  emits: ["click", "dropdown-action"],
   setup(props) {
-    const dropdownConfigRef = computed(() => props.dropdownConfig)
+    const dropdownConfigRef = computed(() => props.dropdownConfig);
     const {
       showDropdown,
       hasDropdown,
@@ -93,8 +99,8 @@ export default {
       dropdownItems,
       toggleDropdown,
       closeDropdown,
-      handleClickOutside
-    } = useToolButtonDropdown(dropdownConfigRef, () => null)
+      handleClickOutside,
+    } = useToolButtonDropdown(dropdownConfigRef, () => null);
 
     return {
       showDropdown,
@@ -103,42 +109,56 @@ export default {
       dropdownItems,
       toggleDropdown,
       closeDropdown,
-      handleClickOutside
-    }
+      handleClickOutside,
+    };
   },
   mounted() {
     // 点击外部关闭下拉菜单
-    document.addEventListener('click', this.handleClickOutside)
+    document.addEventListener("click", this.handleClickOutside);
   },
   beforeUnmount() {
-    document.removeEventListener('click', this.handleClickOutside)
+    document.removeEventListener("click", this.handleClickOutside);
   },
   methods: {
+    isImageIcon(icon) {
+      return (
+        typeof icon === "string" &&
+        (icon.startsWith("http") ||
+          icon.startsWith("/") ||
+          icon.startsWith("data:image/") ||
+          icon.endsWith(".png") ||
+          icon.endsWith(".jpg") ||
+          icon.endsWith(".jpeg") ||
+          icon.endsWith(".svg"))
+      );
+    },
     handleClick() {
-      if (this.hasDropdown && this.tool?.clickMode === 'toggle-dropdown') {
-        this.toggleDropdown()
-        return
+      if (this.hasDropdown && this.tool?.clickMode === "toggle-dropdown") {
+        this.toggleDropdown();
+        return;
       }
-      this.$emit('click', this.tool.id)
+      this.$emit("click", this.tool.id);
     },
     toggleDropdown() {
-      this.showDropdown = !this.showDropdown
+      this.showDropdown = !this.showDropdown;
     },
     handleDropdownAction(item) {
-      this.$emit('dropdown-action', {
+      this.$emit("dropdown-action", {
         toolId: this.tool.id,
         action: item.value,
-        item: item
-      })
-      this.closeDropdown()
+        item: item,
+      });
+      if (!item?.keepOpen) {
+        this.closeDropdown();
+      }
     },
     handleClickOutside(event) {
       if (!this.$el.contains(event.target)) {
-        this.closeDropdown()
+        this.closeDropdown();
       }
-    }
-  }
-}
+    },
+  },
+};
 </script>
 
 <style scoped>
@@ -146,10 +166,13 @@ export default {
   position: relative;
   display: inline-flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  flex: 0 1 auto;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
-  transition: all 0.2s ease;
+  padding: 2px;
+  margin: 0;
+  transition: all 0.18s ease;
 }
 
 .tool-button-container.dropdown-open {
@@ -157,16 +180,20 @@ export default {
 }
 
 .tool-button-container:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.14);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 6px 14px rgba(3, 10, 18, 0.16);
 }
 
 .tool-button-container.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-color: #667eea;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  /* Purple active style: #7C3AED -> #5B21B6 */
+  background: linear-gradient(180deg, rgba(124, 58, 237, 0.18) 0%, rgba(91, 33, 182, 0.78) 100%);
+  border-color: rgba(124, 58, 237, 0.72);
+  box-shadow:
+    0 14px 36px rgba(91, 33, 182, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  transform: translateY(-2px);
 }
 
 .tool-button-container.has-dropdown {
@@ -189,49 +216,94 @@ export default {
   background: transparent;
   border: none;
   border-radius: 6px;
-  color: #ffffff;
-  padding: 12px 16px;
+  color: #e6eef8;
+  padding: 2px;
+  height: 52px;
+  min-height: 52px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform 0.14s ease;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  justify-content: center;
+  gap: 4px;
+  font-size: 11px;
   font-weight: 500;
-  min-width: 0;
-  flex: 1;
+  min-width: 40px;
+  flex: 0 0 auto;
 }
 
 .tool-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  transform: none;
-  box-shadow: none;
+  background: rgba(99, 179, 237, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(15, 30, 60, 0.14);
 }
 
 .tool-btn.active {
-  background: rgba(255, 255, 255, 0.2);
+  /* Remove inner rectangle: keep text color but let outer container provide the active background */
+  background: transparent;
   color: #ffffff;
+  border: none;
+  box-shadow: none;
 }
 
 .tool-button-container.compact .tool-btn {
-  padding: 8px 10px;
-  font-size: 16px;
+  padding: 6px 6px;
+  height: 52px;
+  min-height: 52px;
+  font-size: 11px;
   justify-content: center;
 }
 
 .tool-icon {
-  font-size: 18px;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  display: block;
+  margin: 0 auto;
 }
 
 .tool-button-container.compact .tool-icon {
-  font-size: 20px;
+  font-size: 12px;
+}
+
+.tool-icon-img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  display: block;
+}
+
+.tool-button-container {
+  min-width: 0;
 }
 
 .tool-name {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: 12px;
+  color: #dbeafe;
+  line-height: 1;
+  text-align: center;
+  max-width: 80px;
+}
+
+.tool-button-container.active .tool-name {
+  color: #ffffff;
+  font-weight: 600;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+}
+
+.tool-button-container.active .tool-icon-img,
+.tool-button-container.active .tool-icon span {
+  /* keep svg/text icons bright */
+  color: #ffffff;
+}
+
+.tool-button-container.active .tool-icon-img {
+  filter: drop-shadow(0 6px 12px rgba(91, 33, 182, 0.22));
 }
 
 .dropdown {
@@ -253,9 +325,11 @@ export default {
   border: none;
   border-left: 1px solid rgba(255, 255, 255, 0.3);
   color: #ffffff;
-  padding: 12px 8px;
+  padding: 0 8px;
+  height: 52px;
+  min-height: 52px;
   cursor: pointer;
-  font-size: 10px;
+  font-size: 12px;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
@@ -274,8 +348,10 @@ export default {
 }
 
 .tool-button-container.compact .dropdown-toggle {
-  padding: 8px 6px;
-  font-size: 8px;
+  padding: 0 6px;
+  height: 52px;
+  min-height: 52px;
+  font-size: 12px;
   min-width: 20px;
 }
 
@@ -298,7 +374,7 @@ export default {
   color: #e2e8f0;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 14px;
+  font-size: 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 

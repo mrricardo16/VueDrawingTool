@@ -15,10 +15,11 @@ import { useLayerStore } from './layerStore.js'
  * @typedef {import('../models/types').Area} Area
  */
 
-export const useMapStore = defineStore('map', () => {
+export const useMapStore = defineStore('draw/map', () => {
   // ─── UI 状态（工具/模式）──────────────────────────────────────────────
   const currentTool = ref(null)
   const selectionMode = ref('single')
+  const lineReverseEnabled = ref(false)
 
   // ─── 核心数据 ──────────────────────────────────────────────────────────
   const points = ref([])
@@ -106,6 +107,62 @@ export const useMapStore = defineStore('map', () => {
     drawingCanvas,
     rebuildIdMaps
   })
+
+  // 自动加载并发保护：允许重试，但同一时刻只发一次请求
+  const autoLoadPromise = ref(null)
+  // 标记是否已经成功从服务端加载过地图（避免重复加载引起闪烁）
+  const autoLoadDone = ref(false)
+  // 标记是否已开始发起加载（避免短时间内多次触发）
+  const autoLoadStarted = ref(false)
+  // 同步锁，防止并发入口在检查后同时发起请求（非响应式）
+  let _loadingLock = false
+  const tryAutoLoadFromServer = async () => {
+    if (autoLoadDone.value) {
+      console.info('[mapStore] tryAutoLoadFromServer: already done, short-circuit')
+      return Promise.resolve(true)
+    }
+    if (autoLoadPromise.value) {
+      console.info('[mapStore] tryAutoLoadFromServer: concurrent load in progress, returning same promise')
+      return autoLoadPromise.value
+    }
+    // 如果已有同步锁，则直接返回当前 promise 或 false（避免重复触发）
+    if (_loadingLock) {
+      console.info('[mapStore] tryAutoLoadFromServer: loading lock active, returning existing promise or false')
+      return autoLoadPromise.value || Promise.resolve(false)
+    }
+
+    // 开发环境快速短路：首次触发时立即标记已完成，避免页面多点触发导致视觉闪烁
+    if (import.meta.env && import.meta.env.DEV && !autoLoadStarted.value) {
+      console.info('[mapStore] DEV mode: marking autoLoadDone=true preemptively to avoid duplicate loads')
+      autoLoadDone.value = true
+      autoLoadStarted.value = true
+    }
+
+    console.info('[mapStore] tryAutoLoadFromServer: initiating load')
+    _loadingLock = true
+    autoLoadPromise.value = (async () => {
+      try {
+        const loaded = await mapIO.loadFromServer()
+        if (loaded) {
+          autoLoadDone.value = true
+          console.info('[mapStore] tryAutoLoadFromServer: load succeeded, marking done')
+        } else {
+          console.info('[mapStore] tryAutoLoadFromServer: load returned false')
+          // 如果在 DEV 中我们预先标记了 done，但实际加载失败，需要回退，允许后续重试
+          if (import.meta.env && import.meta.env.DEV) {
+            console.info('[mapStore] DEV mode: load failed, reverting autoLoadDone to allow retry')
+            autoLoadDone.value = false
+            autoLoadStarted.value = false
+          }
+        }
+        return loaded
+      } finally {
+        _loadingLock = false
+        autoLoadPromise.value = null
+      }
+    })()
+    return autoLoadPromise.value
+  }
 
   // ─── 对齐结果应用（数据写入 + history 统一走 store）────────────────────
 
@@ -259,6 +316,13 @@ export const useMapStore = defineStore('map', () => {
     selectionMode.value = mode
   }
 
+  /**
+   * @param {boolean} enabled
+   */
+  const setLineReverseEnabled = (enabled) => {
+    lineReverseEnabled.value = !!enabled
+  }
+
   const clearMode = () => {
     currentTool.value = null
     selectedPoints.value = []
@@ -271,8 +335,10 @@ export const useMapStore = defineStore('map', () => {
     // ui
     currentTool,
     selectionMode,
+    lineReverseEnabled,
     setTool,
     setSelectionMode,
+    setLineReverseEnabled,
     clearMode,
 
     // state
@@ -316,6 +382,19 @@ export const useMapStore = defineStore('map', () => {
 
     // map io
     ...mapIO,
+    // 覆盖 mapIO.loadFromServer：默认走 tryAutoLoadFromServer 幂等路径，传 {force:true} 可强制直接调用
+    loadFromServer: (opts) => {
+      console.info('[mapStore] loadFromServer wrapper called', { force: !!(opts && opts.force) })
+      if (opts && opts.force) return mapIO.loadFromServer()
+      return tryAutoLoadFromServer()
+    },
+    autoLoadPromise,
+    tryAutoLoadFromServer,
+    // 用于在需要时重置已完成标记（例如测试或上传后强制刷新）
+    resetAutoLoad: () => { autoLoadDone.value = false },
+
+    // 开发环境下导出状态便于调试
+    ...(import.meta.env && import.meta.env.DEV ? { autoLoadDone, autoLoadStarted } : {}),
 
     // alignment
     applyAlignmentResult,

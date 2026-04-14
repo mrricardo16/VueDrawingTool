@@ -1,10 +1,15 @@
 /**
  * useMapIO.js
- * 地图文件的读取（异步批量加载）与保存（JSON 序列化），从 App.vue 中提取。
+ *
+ * 优化注释：
+ * - 增加了模块职责的简洁说明。
+ * - 为依赖项和方法补充了更详细的参数和返回值描述。
+ * - 对异步加载流程的关键步骤进行了注释。
  */
 
 import { ref, computed, nextTick } from 'vue'
 import MapLoader from '../utils/mapLoader.js'
+import { initIdCounter } from '../utils/idGenerator.js'
 import { useLayerStore } from '../stores/layerStore.js'
 import MapAPI from '../api/map.js'
 import { triggerFileSelect, downloadJson } from './mapIO/fileHandler.js'
@@ -21,22 +26,22 @@ import { clearMapState, applyLoadedResultInBatches, refreshCanvasAfterLoad } fro
  */
 
 /**
- * @param {{
- * points:any,
- * lines:any,
- * bsplines:any,
- * texts:any,
- * areas:any,
- * selectedPoints:any,
- * selectedLines:any,
- * selectedTexts:any,
- * selectedAreas:any,
- * record?:(op:string,payload:any)=>void,
- * HistoryOp:Record<string,string>,
- * cloneElement:<T>(el:T)=>T,
- * drawingCanvas:any,
- * rebuildIdMaps?:()=>void
- * }} deps
+ * 依赖项说明：
+ * - points/lines/bsplines/texts/areas: 地图要素的响应式数据。
+ * - selectedPoints/selectedLines/...: 当前选中的要素。
+ * - record: 历史记录操作函数。
+ * - HistoryOp: 历史操作类型。
+ * - cloneElement: 克隆元素的工具函数。
+ * - drawingCanvas: 画布实例。
+ * - rebuildIdMaps: ID 映射重建函数。
+ */
+
+/**
+ * 方法说明：
+ * - setupLayersFromMapData: 从地图数据中智能设置图层。
+ * - resolveLayerName: 根据图层存储解析图层名称。
+ * - handleUploadMap: 触发文件选择对话框。
+ * - handleFileSelected: 处理文件选择事件并加载地图数据。
  */
 export function useMapIO({
   points, lines, bsplines, texts, areas,
@@ -69,6 +74,152 @@ export function useMapIO({
   const setupLayersFromMapData = (mapData) => setupLayers(mapData, layerStore)
   /** @param {any} element */
   const resolveLayerName = (element) => resolveLayerNameByStore(element, layerStore)
+
+  /**
+   * 异步扫描加载结果以计算最大 ID，并调用 initIdCounter。
+   * 使用分块（setTimeout）以避免阻塞 UI 主线程。
+   * @param {{points?:any[], lines?:any[], bsplines?:any[], texts?:any[], areas?:any[]}} result
+   * @returns {Promise<number>} 返回发现的最大 ID
+   */
+  async function initCounterFromResult(result) {
+    if (!result || typeof result !== 'object') return 0
+    const pointsArr = result.points || []
+    const linesArr = result.lines || []
+    const bsplinesArr = result.bsplines || []
+    const textsArr = result.texts || []
+    const areasArr = result.areas || []
+    const all = pointsArr.concat(linesArr, bsplinesArr, textsArr, areasArr)
+
+    return new Promise((resolve) => {
+      let maxId = 0
+      const chunkSize = 5000
+      let i = 0
+      const len = all.length
+
+      const process = () => {
+        const end = Math.min(i + chunkSize, len)
+        for (; i < end; i++) {
+          const el = all[i]
+          if (!el) continue
+          const id = parseInt(el.id, 10)
+          if (!Number.isNaN(id) && Number.isFinite(id)) {
+            if (id > maxId) maxId = id
+          }
+        }
+        if (i < len) {
+          setTimeout(process, 0)
+        } else {
+          try { initIdCounter(maxId) } catch (e) { console.warn('initIdCounter failed', e) }
+          resolve(maxId)
+        }
+      }
+      process()
+    })
+  }
+
+  /**
+   * 从不同后端返回形态中提取字段，兼容大小写差异。
+   * @param {Record<string, any>|null|undefined} obj
+   * @param {string[]} names
+   */
+  const pickField = (obj, names) => {
+    if (!obj || typeof obj !== 'object') return undefined
+    for (const name of names) {
+      if (Object.prototype.hasOwnProperty.call(obj, name) && obj[name] !== undefined) {
+        return obj[name]
+      }
+    }
+    const lowerMap = Object.keys(obj).reduce((acc, key) => {
+      acc[key.toLowerCase()] = obj[key]
+      return acc
+    }, {})
+    for (const name of names) {
+      const v = lowerMap[name.toLowerCase()]
+      if (v !== undefined) return v
+    }
+    return undefined
+  }
+
+  /**
+   * 统一地图结构为 `MapLoader` 期望的 `_RobotProjectModel` 形态。
+   * 兼容 `Sites/sites`、`Tracks/tracks` 等大小写差异。
+   * @param {any} mapData
+   */
+  const normalizeMapData = (mapData) => {
+    if (!mapData || typeof mapData !== 'object') return mapData
+    return {
+      Sites: pickField(mapData, ['Sites']) || pickField(mapData, ['sites']) || {},
+      Tracks: pickField(mapData, ['Tracks']) || pickField(mapData, ['tracks']) || {},
+      Curves: pickField(mapData, ['Curves']) || pickField(mapData, ['curves']) || {},
+      Text: pickField(mapData, ['Text']) || pickField(mapData, ['text']) || {},
+      Area: pickField(mapData, ['Area']) || pickField(mapData, ['area']) || {}
+    }
+  }
+
+  /**
+   * 从响应对象中尽可能提取地图有效载荷。
+   * 兼容 mapData/data/Data/result/Result 等字段，并支持 JSON 字符串二次解析。
+   * @param {any} res
+   */
+  const extractMapPayload = (res) => {
+    let payload = pickField(res, ['data', 'Data', 'result', 'Result', 'mapData', 'MapData', 'payload', 'Payload'])
+
+    if (payload === undefined && res && typeof res === 'object') {
+      if (pickField(res, ['Sites', 'Tracks', 'Curves', 'Text', 'Area']) !== undefined) {
+        payload = res
+      }
+    }
+
+    let depth = 0
+    while (typeof payload === 'string' && depth < 2) {
+      try {
+        payload = JSON.parse(payload)
+      } catch {
+        break
+      }
+      depth += 1
+    }
+
+    if (payload && typeof payload === 'object') {
+      const nested = pickField(payload, ['data', 'Data', 'result', 'Result', 'mapData', 'MapData'])
+      if (nested !== undefined && nested !== payload) {
+        return extractMapPayload(nested)
+      }
+    }
+
+    return payload
+  }
+
+  /**
+   * 判断响应是否成功。
+   * @param {any} res
+   */
+  const isOkResponse = (res) => {
+    if (!res || typeof res !== 'object') return false
+    const statusCode = pickField(res, ['statusCode', 'StatusCode'])
+    const isSuccess = pickField(res, ['isSuccess', 'IsSuccess', 'success', 'Success'])
+    const code = pickField(res, ['code', 'Code'])
+
+    if (isSuccess === true) return true
+    if (Number(statusCode) === 200) return true
+    if (String(code) === '00000' || Number(code) === 0 || Number(code) === 200) return true
+
+    // 某些接口只返回 payload，本身就是地图对象
+    if (pickField(res, ['Sites', 'Tracks', 'Curves', 'Text', 'Area']) !== undefined) return true
+
+    return false
+  }
+
+  /**
+   * 将后端响应解析为规范地图对象。
+   * @param {any} res
+   */
+  const parseMapDataFromResponse = (res) => {
+    if (!isOkResponse(res)) return null
+    const payload = extractMapPayload(res)
+    if (!payload || typeof payload !== 'object') return null
+    return normalizeMapData(payload)
+  }
 
   // ─── 打开文件 ──────────────────────────────────────────────────────────
 
@@ -120,6 +271,9 @@ export function useMapIO({
           })
 
           await nextTick()
+
+          // 在批量写入前异步初始化 ID 计数器，避免阻塞主线程
+          await initCounterFromResult(result)
 
           await applyLoadedResultInBatches({
             result,
@@ -188,6 +342,8 @@ export function useMapIO({
     loadingStatus.value = ''
   }
 
+  
+
   // ─── 保存文件 ──────────────────────────────────────────────────────────
 
   /** 保存本地 JSON 文件 */
@@ -255,17 +411,23 @@ export function useMapIO({
   /** 从后端拉取地图并恢复到当前编辑器 */
   const loadFromServer = async () => {
     try {
+      console.info('[MapIO] loadFromServer start', { ts: Date.now() })
+      // 主接口：MapHis/GetMapData
+      console.info('[MapIO] calling MapAPI.GetMapData')
       const res = await MapAPI.GetMapData()
-      // 注意：GetMapData 后端只设置 statusCode=200，不设置 isSuccess=true
-      // 所以不能用 res?.isSuccess，改为检查 statusCode
-      if (!res || (res.statusCode !== 200 && res.isSuccess !== true)) return
+      let mapData = parseMapDataFromResponse(res)
 
-      // GetMapData 返回的 data 是二次序列化的 JSON 字符串
-      let mapData = res.data
-      if (typeof mapData === 'string') {
-        try { mapData = JSON.parse(mapData) } catch { return }
+      // 回退接口：MapHis/GetMap（某些生产环境仅该接口有数据）
+      if (!mapData) {
+        console.info('[MapIO] GetMapData returned no payload, calling fallback GetMap')
+        const fallbackRes = await MapAPI.GetMap()
+        mapData = parseMapDataFromResponse(fallbackRes)
       }
-      if (!mapData) return
+
+      if (!mapData) {
+        console.info('[MapIO] no mapData found after fallback')
+        return false
+      }
 
       // 复用 MapLoader 的解析逻辑
       const totalWork = (
@@ -275,7 +437,10 @@ export function useMapIO({
         (mapData.Text   ? Object.keys(mapData.Text).length   : 0) +
         (mapData.Area   ? Object.keys(mapData.Area).length   : 0)
       )
-      if (totalWork === 0) return  // 后端地图为空，不覆盖本地状态
+      if (totalWork === 0) {
+        console.info('[MapIO] backend map empty (totalWork=0)')
+        return false
+      }
 
       isLoading.value = true
       loadingProgress.value = 0
@@ -310,6 +475,9 @@ export function useMapIO({
 
         await nextTick()
 
+        // 异步初始化 ID 计数器，基于加载的数据计算最大 ID
+        await initCounterFromResult(result)
+
         await applyLoadedResultInBatches({
           result,
           layerStore,
@@ -336,12 +504,16 @@ export function useMapIO({
           points: result.points.length, lines: result.lines.length,
           bsplines: result.bsplines.length
         })
+        console.info('[MapIO] loadFromServer finished successfully', { points: result.points.length, lines: result.lines.length })
+        return true
       })
     } catch (err) {
       // 网络不通或后端未启动时静默忽略，不影响正常使用
       isLoading.value = false
       if (import.meta.env.DEV) console.warn('从后端加载地图失败（可能后端未启动）:', err.message)
     }
+    console.info('[MapIO] loadFromServer end (no load)')
+    return false
   }
 
   return {

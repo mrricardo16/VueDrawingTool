@@ -9,9 +9,10 @@
  * @param {any} lineById
  * @param {any} textById
  * @param {any} bsplineById
+ * @param {any} areas
  */
 
-export function useViewControl(drawingCanvas, pointById, lineById, textById, bsplineById) {
+export function useViewControl(drawingCanvas, pointById, lineById, textById, bsplineById, areas) {
   // 响应式访问：每次都取最新的 Map，避免 stale 引用导致元素找不到
   /** @returns {Map<any, any>} */
   const getPointMap = () => pointById.value
@@ -42,7 +43,7 @@ export function useViewControl(drawingCanvas, pointById, lineById, textById, bsp
   // ─── 计算元素包围盒 ──────────────────────────────────────────────────────
 
   /**
-   * @param {'point'|'text'|'line'|'curve'} type
+  * @param {'point'|'text'|'line'|'curve'|'area'} type
    * @param {number|string} elementId
    * @returns {{centerX:number,centerY:number}|null}
    */
@@ -78,12 +79,30 @@ export function useViewControl(drawingCanvas, pointById, lineById, textById, bsp
 
       let minX = Math.min(sp.x, ep.x), maxX = Math.max(sp.x, ep.x)
       let minY = Math.min(sp.y, ep.y), maxY = Math.max(sp.y, ep.y)
-      if (curve.controlPoints?.length) {
-        curve.controlPoints.forEach(p => {
+      const ctrlPts = curve.controlPoints?.length
+        ? curve.controlPoints
+        : (curve.controlPointIds || []).map(id => pointMap.get(id)).filter(Boolean)
+
+      if (ctrlPts.length) {
+        ctrlPts.forEach(p => {
           minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x)
           minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y)
         })
       }
+      return { centerX: (minX + maxX) / 2, centerY: (minY + maxY) / 2 }
+    }
+
+    if (type === 'area') {
+      const areaList = areas?.value || []
+      const area = areaList.find(a => a.id === elementId)
+      if (!area?.points?.length) return null
+
+      let minX = Infinity, maxX = -Infinity
+      let minY = Infinity, maxY = -Infinity
+      area.points.forEach(p => {
+        minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x)
+        minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y)
+      })
       return { centerX: (minX + maxX) / 2, centerY: (minY + maxY) / 2 }
     }
     return null
@@ -93,7 +112,7 @@ export function useViewControl(drawingCanvas, pointById, lineById, textById, bsp
 
   /**
    * 聚焦到指定元素中心
-   * @param {'point'|'text'|'line'|'curve'} type
+  * @param {'point'|'text'|'line'|'curve'|'area'} type
    * @param {number|string} elementId
    */
   const focusOnElement = (type, elementId) => {

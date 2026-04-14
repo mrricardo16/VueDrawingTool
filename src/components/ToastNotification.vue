@@ -147,14 +147,14 @@ export default {
 
 .toast-title {
   font-weight: 600;
-  font-size: 14px;
+  font-size: 12px;
   line-height: 1.4;
   color: #111827;
   margin-bottom: 2px;
 }
 
 .toast-message {
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.4;
   color: #6b7280;
   word-wrap: break-word;

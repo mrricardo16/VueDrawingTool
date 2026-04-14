@@ -68,6 +68,7 @@ export default {
     selectedAreas: { type: Array, default: () => [] },
     bsplineParams: { type: Object, default: () => ({}) },
     selectionMode: { type: String, default: 'single' },
+    lineReverseEnabled: { type: Boolean, default: false },
     isLoading: { type: Boolean, default: false }
   },
   emits: [
@@ -227,7 +228,8 @@ export default {
         activeBspline: this.activeBsplineForEdit,
         bsplineStartPoint: this.activeBsplineStartPoint,
         bsplineEndPoint: this.activeBsplineEndPoint,
-        activeArea: this.activeAreaForEdit
+        activeArea: this.activeAreaForEdit,
+        getPointById: this.getPointByIdFn()
       }
     },
 
@@ -246,6 +248,7 @@ export default {
         selectedTexts: this.selectedTexts,
         selectedAreas: this.selectedAreas,
         selectionMode: this.selectionMode,
+        lineReverseEnabled: this.lineReverseEnabled,
         scale: this.scale,
         minScale: this.minScale,
         maxScale: this.maxScale,

@@ -53,44 +53,21 @@
           </div>
         </div>
         
-        <!-- 状态标签页 -->
-        <div v-else-if="activeTab === 'status'" class="status-content">
-          <div v-for="line in selectedLinesData" :key="line.id" class="status-item">
-            <div class="status-info">
-              <div class="status-row">
-                <span class="status-label">线路ID:</span>
-                <span class="status-value">{{ line.id }}</span>
-              </div>
-              <div class="status-row">
-                <span class="status-label">线路名称:</span>
-                <span class="status-value">{{ line.name || '未命名' }}</span>
-              </div>
-              <div class="status-row">
-                <span class="status-label">连接状态:</span>
-                <span class="status-value">{{ getLineConnectionStatus(line) }}</span>
-              </div>
-              <div class="status-row">
-                <span class="status-label">线路长度:</span>
-                <span class="status-value">{{ getLineLength(line) }}</span>
-              </div>
-              <div class="status-row">
-                <span class="status-label">方向模式:</span>
-                <span class="status-value">{{ line.mode === 'bidirectional' ? '双向' : '单向' }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <!-- 状态标签页（已移除） -->
         
         <!-- 动作标签页 -->
         <div v-else-if="activeTab === 'actions'" class="actions-content">
-          <div class="action-buttons">
-            <button class="mini-action-btn" disabled>复制线路</button>
-            <button class="mini-action-btn" disabled>删除线路</button>
-            <button class="mini-action-btn" disabled>反转方向</button>
-            <button class="mini-action-btn" disabled>导出数据</button>
-          </div>
-          <div class="action-notice">
-            <small>功能待实现...</small>
+          <div v-for="line in selectedLinesData" :key="line.id" class="line-action-card">
+            <div class="action-buttons vertical-list">
+              <button class="mini-action-btn" @click="setJsonArrayField(line, 'conflicts', '设置冲突路线ID（逗号分隔）')">设置冲突路线</button>
+              <button class="mini-action-btn" @click="setJsonArrayField(line, 'sconflicts', '设置冲突点ID（逗号分隔）')">设置冲突点</button>
+              <button class="mini-action-btn" @click="setJsonArrayField(line, 'freeLineSites', '配置自由线段站点ID（逗号分隔）')">配置自由线段</button>
+              <button class="mini-action-btn" @click="toggleTrackField(line, 'reverseDst', String(line.endPointId || line.siteB || ''))">设置倒车点</button>
+              <button class="mini-action-btn" @click="setDefaultSwitchDef(line)">激光设置</button>
+              <button class="mini-action-btn" @click="toggleTrackField(line, 'rotateid', 'true')">设置原地旋转</button>
+              <button class="mini-action-btn" disabled>投影站点</button>
+              <button class="mini-action-btn" disabled>二分路径</button>
+            </div>
           </div>
         </div>
       </div>
@@ -130,10 +107,9 @@ export default {
       activeTab: 'properties',
       lineTabs: [
         { key: 'properties', label: '属性' },
-        { key: 'status', label: '状态' },
         { key: 'actions', label: '动作' }
       ]
-    }
+    };
   },
   computed: {
     hasSelection() {
@@ -187,8 +163,38 @@ export default {
       }
       return '无法计算'
     },
-    
-    // 注意：复制、删除、反转、导出功能待实现，暂时移除以减少冗余代码
+
+    toggleTrackField(line, field, onValue = 'true') {
+      line.fields = line.fields || {}
+      if (line.fields[field] != null) delete line.fields[field]
+      else line.fields[field] = onValue
+      this.updateLine(line)
+    },
+
+    setDefaultSwitchDef(line) {
+      this.toggleTrackField(
+        line,
+        'switchDef',
+        JSON.stringify({ front: 1, left: 1, right: 1, frontUp: 1, back: 1, frok: 1, backUp: 1 })
+      )
+    },
+
+    setJsonArrayField(line, field, title) {
+      line.fields = line.fields || {}
+      const current = line.fields[field] || '[]'
+      const raw = window.prompt(title, current)
+      if (raw == null) return
+      const ids = raw
+        .split(',')
+        .map(x => Number(String(x).trim()))
+        .filter(n => Number.isFinite(n))
+      if (!ids.length) {
+        delete line.fields[field]
+      } else {
+        line.fields[field] = JSON.stringify([...new Set(ids)])
+      }
+      this.updateLine(line)
+    }
   }
 }
 </script>
@@ -209,7 +215,7 @@ export default {
   align-items: center;
   justify-content: center;
   color: #a0aec0;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .property-section {
@@ -312,5 +318,17 @@ export default {
 .status-value {
   color: #e2e8f0;
   font-size: 12px;
+}
+
+.line-action-card {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.vertical-list {
+  display: flex;
+  flex-direction: column;
 }
 </style>

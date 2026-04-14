@@ -31,7 +31,7 @@ export function useContextMenuHandler(points, record, HistoryOp, cloneElement) {
    * @param {Record<string,string>} [HistoryOp]
    * @param {<T>(el:T)=>T} [cloneElement]
    */
-  const handleChangePointType = (type) => {
+  const updateSelectedPoint = (mutator) => {
     if (!contextMenuSelectedPoint.value) return
 
     const pointId = contextMenuSelectedPoint.value.id
@@ -40,8 +40,19 @@ export function useContextMenuHandler(points, record, HistoryOp, cloneElement) {
 
     const before = cloneElement ? cloneElement(points.value[idx]) : { ...points.value[idx] }
     const point = points.value[idx]
-    point.type = type === 'point' ? null : type
     point.fields = point.fields || {}
+    mutator(point)
+    const after = cloneElement ? cloneElement(points.value[idx]) : { ...points.value[idx] }
+    if (JSON.stringify(before) === JSON.stringify(after)) return
+    record?.(HistoryOp.UPDATE, { kind: 'points', before: [before], after: [after] })
+
+    // 触发 DrawingCanvas 的 points watcher（in-place 修改不会触发 watcher）
+    points.value = [...points.value]
+  }
+
+  const handleChangePointType = (type) => {
+    updateSelectedPoint((point) => {
+    point.type = type === 'point' ? null : type
 
     // 清空旧类型字段
     delete point.fields.charge
@@ -76,12 +87,97 @@ export function useContextMenuHandler(points, record, HistoryOp, cloneElement) {
         point.fields.stagingSite = 'true'
         break
     }
+    })
+  }
 
-    const after = cloneElement ? cloneElement(points.value[idx]) : { ...points.value[idx] }
-    record?.(HistoryOp.UPDATE, { kind: 'points', before: [before], after: [after] })
+  const toggleField = (field, valueWhenOn = 'true') => {
+    updateSelectedPoint((point) => {
+      if (point.fields[field] != null) delete point.fields[field]
+      else point.fields[field] = valueWhenOn
+    })
+  }
 
-    // 触发 DrawingCanvas 的 points watcher（in-place 修改不会触发 watcher）
-    points.value = [...points.value]
+  const handleContextMenuAction = (action) => {
+    switch (action) {
+      case 'set-site':
+        toggleField('shelf')
+        return
+      case 'set-charge':
+        updateSelectedPoint((point) => {
+          if (point.fields.shelf === 'true') return
+          if (point.fields.charge != null) {
+            delete point.fields.charge
+            delete point.fields.codeArrive
+            delete point.fields.codeLeave
+          } else {
+            point.fields.charge = 'true'
+            point.fields.codeArrive = 'agv.ActionCharge(true);'
+            point.fields.codeLeave = 'agv.ActionCharge(false);'
+          }
+        })
+        return
+      case 'set-standby':
+        toggleField('standby')
+        return
+      case 'set-staging':
+        updateSelectedPoint((point) => {
+          if (point.fields.shelf === 'true') return
+          if (point.fields.stagingSite != null) delete point.fields.stagingSite
+          else point.fields.stagingSite = 'true'
+        })
+        return
+      case 'disable-init':
+        toggleField('no_reset')
+        return
+      case 'set-loopid':
+        updateSelectedPoint((point) => {
+          if (point.fields.loopid != null) {
+            delete point.fields.loopid
+            return
+          }
+          const val = window.prompt('请输入 loopid', '')
+          if (val == null) return
+          if (!val.trim()) return
+          point.fields.loopid = val.trim()
+        })
+        return
+      case 'set-heights': {
+        const val = window.prompt('请输入楼层(如 [300,400])', '[300,400]')
+        if (val == null) return
+        updateSelectedPoint((point) => {
+          if (!val.trim()) delete point.fields.heights
+          else point.fields.heights = val.trim()
+        })
+        return
+      }
+      case 'enable-inter-action':
+        toggleField('interAction')
+        return
+      case 'enable-leave-action':
+        toggleField('leaveAction')
+        return
+      case 'disable-no-block':
+        toggleField('no_block')
+        return
+      case 'set-escape':
+        toggleField('escape')
+        return
+      case 'set-priority':
+        updateSelectedPoint((point) => {
+          if (point.fields.charge !== 'true' && point.fields.standby !== 'true') return
+          const current = point.fields.priority || '0'
+          const val = window.prompt('请输入优先级', current)
+          if (val == null) return
+          if (!val.trim()) delete point.fields.priority
+          else point.fields.priority = val.trim()
+        })
+        return
+      case 'set-change-pos':
+        toggleField('actionChangePos')
+        return
+      default:
+        return
+    }
   }
 
   return {
@@ -90,6 +186,7 @@ export function useContextMenuHandler(points, record, HistoryOp, cloneElement) {
     contextMenuSelectedPoint,
     handleShowContextMenu,
     handleCloseContextMenu,
-    handleChangePointType
+    handleChangePointType,
+    handleContextMenuAction
   }
 }

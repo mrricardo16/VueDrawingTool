@@ -13,6 +13,7 @@ export function createMapEditorShellEventRelay(emit) {
     drawingToolsListeners: {
       'tool-change': relay('tool-change'),
       'selection-mode-change': relay('selection-mode-change'),
+      'reverse-toggle-change': relay('reverse-toggle-change'),
       'perform-alignment': relay('perform-alignment'),
       'upload-map': relay('upload-map'),
       'upload-to-server': relay('upload-to-server'),
@@ -56,6 +57,7 @@ export function createMapEditorShellEventRelay(emit) {
       'update-curve': relay('update-curve'),
       'update-area': relay('update-area')
     },
-    relayElementSelection: relay('element-selection')
+    relayElementSelection: relay('element-selection'),
+    relayElementFocus: relay('element-focus')
   }
 }

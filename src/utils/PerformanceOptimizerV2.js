@@ -191,8 +191,6 @@ export class PerformanceOptimizerV2 {
    */
   async queryVisibleElementsAsync(elements, scale, offset, viewBounds) {
     return new Promise((resolve) => {
-      const messageId = Date.now()
-      
       const handleMessage = (e) => {
         if (e.data.type === 'render-complete') {
           this.worker.removeEventListener('message', handleMessage)

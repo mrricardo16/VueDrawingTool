@@ -50,33 +50,7 @@
           </div>
         </div>
         
-        <!-- 状态标签页 -->
-        <div v-else-if="activeTab === 'status'" class="status-content">
-          <div v-for="text in selectedTextsData" :key="text.id" class="status-item">
-            <div class="status-info">
-              <div class="status-row">
-                <span class="status-label">文本ID:</span>
-                <span class="status-value">{{ text.id }}</span>
-              </div>
-              <div class="status-row">
-                <span class="status-label">文本内容:</span>
-                <span class="status-value">{{ text.name || '空文本' }}</span>
-              </div>
-              <div class="status-row">
-                <span class="status-label">字符数量:</span>
-                <span class="status-value">{{ text.name ? text.name.length : 0 }}</span>
-              </div>
-              <div class="status-row">
-                <span class="status-label">字体大小:</span>
-                <span class="status-value">{{ text.fontSize }}px</span>
-              </div>
-              <div class="status-row">
-                <span class="status-label">显示状态:</span>
-                <span class="status-value">正常显示</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <!-- 状态标签页（已移除） -->
         
         <!-- 动作标签页 -->
         <div v-else-if="activeTab === 'actions'" class="actions-content">
@@ -119,10 +93,9 @@ export default {
       activeTab: 'properties',
       textTabs: [
         { key: 'properties', label: '属性' },
-        { key: 'status', label: '状态' },
         { key: 'actions', label: '动作' }
       ]
-    }
+    };
   },
   computed: {
     hasSelection() {
@@ -171,7 +144,7 @@ export default {
   align-items: center;
   justify-content: center;
   color: #a0aec0;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .property-section {

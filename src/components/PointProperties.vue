@@ -67,74 +67,7 @@
           </div>
         </div>
         
-        <!-- 状态标签页 -->
-        <div v-else-if="activeTab === 'status'" class="status-content">
-          <div v-for="point in selectedPointsData" :key="point.id" class="status-item">
-            <div class="status-info">
-              <div class="status-row">
-                <span class="status-label">站点ID:</span>
-                <span class="status-value">{{ point.id }}</span>
-              </div>
-              <div class="status-row">
-                <span class="status-label">站点名称:</span>
-                <span class="status-value">{{ point.name || '未命名' }}</span>
-              </div>
-              <div class="status-row">
-                <span class="status-label">站点类型:</span>
-                <span class="status-value">{{ getPointTypeLabel(point.type) }}</span>
-              </div>
-              <div class="status-row">
-                <span class="status-label">坐标位置:</span>
-                <span class="status-value">X: {{ point.x.toFixed(2) }}, Y: {{ point.y.toFixed(2) }}</span>
-              </div>
-              <div class="status-row">
-                <span class="status-label">循环ID:</span>
-                <span class="status-value">{{ point.fields.loopid || '无' }}</span>
-              </div>
-              <div class="status-row">
-                <span class="status-label">高度范围:</span>
-                <span class="status-value">{{ point.fields.heights || '未设置' }}</span>
-              </div>
-              <div class="status-row">
-                <span class="status-label">必须空闲:</span>
-                <span class="status-value">{{ point.fields.mustFree || '[]' }}</span>
-              </div>
-              <div class="status-row">
-                <span class="status-label">特殊属性:</span>
-                <span class="status-value">
-                  <span v-if="point.fields.shelf === 'true'" class="status-tag shelf">货架</span>
-                  <span v-if="point.fields.escape === 'true'" class="status-tag escape">紧急出口</span>
-                  <span v-if="point.fields.standby === 'true'" class="status-tag standby">休息点</span>
-                  <span v-if="point.fields.stagingSite === 'true'" class="status-tag staging">暂存站点</span>
-                  <span v-if="point.fields.charge === 'true'" class="status-tag charge">充电点</span>
-                  <span v-if="!point.fields.shelf && !point.fields.escape && !point.fields.standby && !point.fields.stagingSite && !point.fields.charge" class="status-tag normal">普通站点</span>
-                </span>
-              </div>
-              <div class="status-row">
-                <span class="status-label">动作配置:</span>
-                <span class="status-value">
-                  <div v-if="point.fields.codeArrive" class="action-info">
-                    <small>到达: {{ point.fields.codeArrive }}</small>
-                  </div>
-                  <div v-if="point.fields.codeLeave" class="action-info">
-                    <small>离开: {{ point.fields.codeLeave }}</small>
-                  </div>
-                  <div v-if="!point.fields.codeArrive && !point.fields.codeLeave" class="action-info">
-                    <small>无动作配置</small>
-                  </div>
-                </span>
-              </div>
-              <div class="status-row">
-                <span class="status-label">连接状态:</span>
-                <span class="status-value">{{ getConnectionStatus(point.id) }}</span>
-              </div>
-              <div class="status-row">
-                <span class="status-label">创建时间:</span>
-                <span class="status-value">{{ getCreationTime(point.id) }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <!-- 状态标签页（已移除） -->
         
         <!-- 动作标签页 -->
         <div v-else-if="activeTab === 'actions'" class="actions-content">
@@ -142,59 +75,14 @@
             <div class="action-header">
               <h4>站点 {{ point.id }} - {{ point.name || '未命名' }}</h4>
             </div>
-            
+
             <div class="action-buttons">
-              <button @click="copyPoint(point)" class="mini-action-btn primary">
-                📋 复制站点
-              </button>
-              <button @click="deletePoint(point)" class="mini-action-btn danger">
-                🗑️ 删除站点
-              </button>
-              <button @click="resetPointFields(point)" class="mini-action-btn secondary">
-                🔄 重置字段
-              </button>
-              <button @click="exportPointData(point)" class="mini-action-btn secondary">
-                📤 导出数据
-              </button>
-            </div>
-            
-            <div class="quick-actions">
-              <h5>快速操作</h5>
-              <div class="quick-action-grid">
-                <button @click="setAsShelf(point)" :class="['quick-btn', point.fields.shelf === 'true' ? 'active' : '']">
-                  🏪 设为货架
-                </button>
-                <button @click="setAsCharging(point)" :class="['quick-btn', point.fields.charge === 'true' ? 'active' : '']">
-                  🔋 设为充电点
-                </button>
-                <button @click="setAsStandby(point)" :class="['quick-btn', point.fields.standby === 'true' ? 'active' : '']">
-                  ⏸️ 设为休息点
-                </button>
-                <button @click="setAsEscape(point)" :class="['quick-btn', point.fields.escape === 'true' ? 'active' : '']">
-                  🚪 设为紧急出口
-                </button>
-                <button @click="setAsStaging(point)" :class="['quick-btn', point.fields.stagingSite === 'true' ? 'active' : '']">
-                  📦 设为暂存站点
-                </button>
-                <button @click="clearSpecialFields(point)" class="quick-btn">
-                  ❌ 清除特殊属性
-                </button>
-              </div>
-            </div>
-            
-            <div class="action-templates">
-              <h5>动作模板</h5>
-              <div class="template-buttons">
-                <button @click="applyChargingTemplate(point)" class="template-btn">
-                  ⚡ 充电点模板
-                </button>
-                <button @click="applyShelfTemplate(point)" class="template-btn">
-                  📦 货架模板
-                </button>
-                <button @click="applyRestTemplate(point)" class="template-btn">
-                  🛏️ 休息点模板
-                </button>
-              </div>
+              <button @click="allowLock(point)" class="mini-action-btn secondary">启用该点</button>
+              <button @click="preventLock(point)" class="mini-action-btn secondary">禁用该点</button>
+              <button @click="clearTags(point)" class="mini-action-btn secondary">清除标记</button>
+              <button @click="showConflicts(point)" class="mini-action-btn secondary">显示该点的必空点</button>
+              <button @click="setMustFree(point)" class="mini-action-btn secondary">设置必空点</button>
+              <button @click="showDebug(point)" class="mini-action-btn secondary">显示调试信息</button>
             </div>
           </div>
         </div>
@@ -231,10 +119,9 @@ export default {
       activeTab: 'properties',
       pointTabs: [
         { key: 'properties', label: '属性' },
-        { key: 'status', label: '状态' },
         { key: 'actions', label: '动作' }
       ]
-    }
+    };
   },
   computed: {
     hasSelection() {
@@ -252,16 +139,37 @@ export default {
       this.$emit('update-point', point)
     },
     
-    getPointTypeLabel(type) {
+    getPointTypeLabel(pointOrType) {
       const typeLabels = {
-        'point': '普通点',
-        'site': '站点',
-        'rest': '休息点',
-        'charging': '充电点',
-        'escape': '紧急出口',
-        'staging': '暂存站点'
+        point: "普通点",
+        site: "站点",
+        rest: "休息点",
+        charging: "充电点",
+        escape: "紧急出口",
+        staging: "暂存站点",
+      };
+
+      // 支持传入完整 point 对象或直接传入类型字符串
+      if (pointOrType && typeof pointOrType === "object") {
+        const t = pointOrType.type;
+        if (t && typeLabels[t]) return typeLabels[t];
+
+        const f = pointOrType.fields || {};
+        if (f.stagingSite === "true" || f.staging === "true") return typeLabels.staging;
+        if (f.charge === "true" || f.charging === "true") return typeLabels.charging;
+        if (f.escape === "true") return typeLabels.escape;
+        if (f.standby === "true" || f.rest === "true") return typeLabels.rest;
+        if (f.shelf === "true" || f.site === "true") return typeLabels.site;
+
+        return typeLabels.point;
       }
-      return typeLabels[type] || '未知类型'
+
+      // 直接传入类型字符串的场景
+      if (typeof pointOrType === "string") {
+        return typeLabels[pointOrType] || "未知类型";
+      }
+
+      return "未知类型";
     },
     
     getConnectionStatus(pointId) {
@@ -278,102 +186,44 @@ export default {
       return new Date().toLocaleString('zh-CN')
     },
     
-    // 动作相关方法
-    copyPoint(point) {
-      const newPoint = {
-        ...point,
-        id: Date.now(),
-        name: `${point.name || 'NoName'}_副本`,
-        x: point.x + 100,
-        y: point.y + 100
-      }
-      this.$emit('update-point', newPoint)
-    },
-    
-    deletePoint(point) {
-      if (confirm(`确定要删除站点 ${point.id} 吗？`)) {
-        // 这里应该发出删除事件，而不是更新事件
-        if (import.meta.env.DEV) console.log('删除站点功能待实现:', point.id)
-      }
-    },
-    
-    resetPointFields(point) {
-      point.fields = {}
+    allowLock(point) {
+      point.fields = point.fields || {}
+      delete point.fields.preventLock
       this.updatePoint(point)
     },
-    
-    exportPointData(point) {
-      const data = JSON.stringify(point, null, 2)
-      navigator.clipboard.writeText(data).then(() => {
-        alert('站点数据已复制到剪贴板')
-      })
-    },
-    
-    // 快速设置方法
-    setAsShelf(point) {
-      point.fields.shelf = point.fields.shelf === 'true' ? 'false' : 'true'
-      point.fields.heights = point.fields.heights || '[300,400]'
+
+    preventLock(point) {
+      point.fields = point.fields || {}
+      point.fields.preventLock = 'true'
       this.updatePoint(point)
     },
-    
-    setAsCharging(point) {
-      point.fields.charge = point.fields.charge === 'true' ? 'false' : 'true'
-      point.fields.codeArrive = point.fields.codeArrive || 'agv.ActionCharge(true)'
-      point.fields.codeLeave = point.fields.codeLeave || 'agv.ActionCharge(false)'
+
+    clearTags(point) {
+      point.fields = point.fields || {}
+      delete point.fields.preventLock
+      delete point.fields.tags
       this.updatePoint(point)
     },
-    
-    setAsStandby(point) {
-      point.fields.standby = point.fields.standby === 'true' ? 'false' : 'true'
+
+    showConflicts(point) {
+      const raw = point.fields?.mustFree || '[]'
+      alert(`必空点: ${raw}`)
+    },
+
+    setMustFree(point) {
+      point.fields = point.fields || {}
+      const raw = window.prompt('请输入必空点ID（逗号分隔）', point.fields.mustFree || '[]')
+      if (raw == null) return
+      const ids = raw
+        .split(',')
+        .map(x => Number(String(x).trim()))
+        .filter(n => Number.isFinite(n))
+      point.fields.mustFree = JSON.stringify([...new Set(ids)])
       this.updatePoint(point)
     },
-    
-    setAsEscape(point) {
-      point.fields.escape = point.fields.escape === 'true' ? 'false' : 'true'
-      this.updatePoint(point)
-    },
-    
-    setAsStaging(point) {
-      point.fields.stagingSite = point.fields.stagingSite === 'true' ? 'false' : 'true'
-      this.updatePoint(point)
-    },
-    
-    clearSpecialFields(point) {
-      point.fields.shelf = 'false'
-      point.fields.escape = 'false'
-      point.fields.standby = 'false'
-      point.fields.stagingSite = 'false'
-      point.fields.charge = 'false'
-      this.updatePoint(point)
-    },
-    
-    // 模板应用方法
-    applyChargingTemplate(point) {
-      point.fields = {
-        ...point.fields,
-        charge: 'true',
-        codeArrive: 'agv.ActionCharge(true)',
-        codeLeave: 'agv.ActionCharge(false)'
-      }
-      this.updatePoint(point)
-    },
-    
-    applyShelfTemplate(point) {
-      point.fields = {
-        ...point.fields,
-        shelf: 'true',
-        heights: '[300,400]',
-        loopid: point.fields.loopid || ''
-      }
-      this.updatePoint(point)
-    },
-    
-    applyRestTemplate(point) {
-      point.fields = {
-        ...point.fields,
-        standby: 'true'
-      }
-      this.updatePoint(point)
+
+    showDebug(point) {
+      alert(`${point.name || 'NoName'}(${point.id})\n${JSON.stringify(point.fields || {}, null, 2)}`)
     }
   }
 }
@@ -395,7 +245,7 @@ export default {
   align-items: center;
   justify-content: center;
   color: #a0aec0;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .property-section {
@@ -526,7 +376,7 @@ export default {
   display: inline-block;
   padding: 2px 6px;
   border-radius: 4px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
   margin-right: 4px;
   margin-bottom: 4px;
@@ -592,15 +442,14 @@ export default {
 .action-header h4 {
   color: #e2e8f0;
   margin: 0;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
 }
 
 .action-buttons {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 8px;
-  margin-bottom: 16px;
 }
 
 .mini-action-btn {
@@ -659,7 +508,7 @@ export default {
 .action-templates h5 {
   color: #e2e8f0;
   margin: 0 0 8px 0;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -675,7 +524,7 @@ export default {
   border-radius: 4px;
   background: #1a202c;
   color: #a0aec0;
-  font-size: 11px;
+  font-size: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -703,7 +552,7 @@ export default {
   border-radius: 4px;
   background: #1a202c;
   color: #a0aec0;
-  font-size: 11px;
+  font-size: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
 }

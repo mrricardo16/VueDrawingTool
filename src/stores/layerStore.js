@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { nextId } from '../utils/idGenerator.js'
 
 /**
  * @typedef {{id:string, name:string, visible:boolean, color?:string}} Layer
  */
 
-export const useLayerStore = defineStore('layer', () => {
+export const useLayerStore = defineStore('draw/layer', () => {
   // 图层列表，默认包含一个默认图层 'g'
   const layers = ref([
     { id: 'g', name: 'g', visible: true }
@@ -34,7 +35,7 @@ export const useLayerStore = defineStore('layer', () => {
    */
   const addLayer = (name) => {
     // 生成唯一ID（简单的时间戳+随机数）
-    const id = 'layer_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    const id = 'layer_' + nextId() + '_' + Math.random().toString(36).substr(2, 9)
     
     // 检查名称是否重复
     const existingNames = layers.value.map(layer => layer.name)

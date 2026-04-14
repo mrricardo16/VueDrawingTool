@@ -2,6 +2,7 @@
   <div class="layer-dropdown" :class="{ open: isOpen }">
     <button
       class="layer-button"
+      title="图层"
       @mousedown.stop
       @mouseup.stop
       @click.stop="toggleDropdown"
@@ -124,15 +125,51 @@ export default {
 }
 
 .layer-button {
-  display: flex; align-items: center; gap: 6px;
-  padding: 8px 12px;
-  background: #2c3e50; border: 1px solid #34495e; border-radius: 4px;
-  color: #ecf0f1; cursor: pointer; font-size: 14px;
-  transition: background 0.2s, border-color 0.2s;
+  /* match the look of tool buttons that have dropdowns */
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  height: 52px;
+  min-height: 52px;
+  min-width: 40px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  color: #dbeafe;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  transition: all 0.12s ease;
 }
-.layer-button:hover, .layer-button.open { background: #34495e; border-color: #4a5f7a; }
+.layer-button:hover, .layer-button.open {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.16);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(15, 30, 60, 0.14);
+}
 
-.arrow { font-size: 10px; transition: transform 0.2s; }
+.layer-button svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.layer-button .arrow {
+  margin-left: 6px;
+  padding-left: 6px;
+  border-left: 1px solid rgba(255,255,255,0.08);
+  display: inline-flex;
+  align-items: center;
+}
+
+.layer-button.open {
+  background: linear-gradient(180deg, rgba(124,58,237,0.12), rgba(91,33,182,0.18));
+  color: #ffffff;
+  border-color: rgba(91,33,182,0.24);
+}
+
+.arrow { font-size: 12px; transition: transform 0.2s; }
 .arrow.up { transform: rotate(180deg); }
 
 .dropdown-menu {
@@ -148,23 +185,33 @@ export default {
 .layer-item {
   display: flex; align-items: center; gap: 8px;
   padding: 8px 12px; cursor: pointer; transition: background 0.15s;
+  font-size: 11px;
 }
 .layer-item:hover { background: #34495e; }
 
 .layer-checkbox { width: 16px; height: 16px; flex-shrink: 0; accent-color: #3498db; cursor: pointer; }
 
-.layer-name { flex: 1; color: #ecf0f1; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.layer-name { flex: 1; color: #ecf0f1; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .layer-name.is-default { font-weight: bold; color: #3498db; }
 
 .divider { height: 1px; background: #34495e; margin: 4px 0; }
 
 .add-layer-btn {
-  display: flex; align-items: center; gap: 8px;
-  width: 100%; padding: 10px 12px;
-  background: transparent; border: none; color: #3498db; cursor: pointer; font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  height: 40px;
+  min-height: 40px;
+  background: transparent;
+  border: none;
+  color: #ecf0f1;
+  cursor: pointer;
+  font-size: 12px;
   transition: background 0.15s;
 }
-.add-layer-btn:hover { background: #34495e; }
+.add-layer-btn:hover { background: rgba(255, 255, 255, 0.08); }
 
 .dialog-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,.5);
@@ -174,21 +221,21 @@ export default {
   background: #2c3e50; border: 1px solid #34495e; border-radius: 6px;
   padding: 20px; min-width: 300px; box-shadow: 0 8px 24px rgba(0,0,0,.4);
 }
-.dialog h3 { margin: 0 0 16px; color: #ecf0f1; font-size: 16px; }
+.dialog h3 { margin: 0 0 16px; color: #ecf0f1; font-size: 12px; }
 .layer-name-input {
   width: 100%; padding: 8px 12px; background: #34495e; border: 1px solid #4a5f7a;
-  border-radius: 4px; color: #ecf0f1; font-size: 14px; margin-bottom: 16px; box-sizing: border-box;
+  border-radius: 4px; color: #ecf0f1; font-size: 12px; margin-bottom: 16px; box-sizing: border-box;
 }
 .layer-name-input:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,.2); }
 .dialog-buttons { display: flex; gap: 12px; justify-content: flex-end; }
 .cancel-btn {
   padding: 6px 16px; background: #7f8c8d; border: none; border-radius: 4px;
-  color: white; cursor: pointer; font-size: 14px; transition: background 0.15s;
+  color: white; cursor: pointer; font-size: 12px; transition: background 0.15s;
 }
 .cancel-btn:hover { background: #95a5a6; }
 .confirm-btn {
   padding: 6px 16px; background: #3498db; border: none; border-radius: 4px;
-  color: white; cursor: pointer; font-size: 14px; transition: background 0.15s;
+  color: white; cursor: pointer; font-size: 12px; transition: background 0.15s;
 }
 .confirm-btn:hover:not(:disabled) { background: #2980b9; }
 .confirm-btn:disabled { background: #7f8c8d; cursor: not-allowed; }

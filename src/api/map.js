@@ -4,9 +4,23 @@
  */
 import request from "../utils/request.js";
 
+// 全局去重 promise，避免不同触发点重复发起 GetMapData 请求
+let _getMapDataPromise = null
+
 /**
  * 地图API接口集合
  * 包含地图文件管理、地图数据操作、站点路径管理等接口
+ *
+ * 方法说明：
+ * - GetMapFileList: 获取地图文件列表。
+ * - GetMapFile: 获取指定地图文件。
+ * - GetMap: 获取当前地图数据。
+ * - AddMapData: 添加地图数据。
+ * - PublishMapData: 发布地图数据。
+ * - UpdatePath: 更新路径信息。
+ * - UpdateSite: 更新站点信息。
+ * - SaveMapData: 保存地图数据到后端。
+ * - GetMapData: 从后端读取当前地图数据。
  */
 const MapAPI = {
   /**
@@ -140,10 +154,31 @@ const MapAPI = {
    * @returns {Promise<Object>} _RobotProjectModel 对象
    */
   GetMapData() {
-    return request({
+    // 使用全局 promise 防止多 bundle / 多实例情况下重复请求
+    try {
+      if (typeof window !== 'undefined' && window.__GLOBAL_GET_MAP_PROMISE) {
+        return window.__GLOBAL_GET_MAP_PROMISE
+      }
+    } catch (e) {}
+
+    // DEV trace removed: keep behavior unchanged
+
+    const p = request({
       url: '/MapHis/GetMapData',
       method: 'post',
       data: {},
+    })
+
+    try {
+      if (typeof window !== 'undefined') {
+        window.__GLOBAL_GET_MAP_PROMISE = p
+      }
+    } catch (e) {}
+
+    return p.finally(() => {
+      try {
+        if (typeof window !== 'undefined') delete window.__GLOBAL_GET_MAP_PROMISE
+      } catch (e) {}
     })
   },
 
